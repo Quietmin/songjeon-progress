@@ -350,82 +350,69 @@ function importJSON(file){
   const r=new FileReader();
   r.onload=()=>{ try{ const s=JSON.parse(r.result); if(!s.entries) throw 0;
     STATE=Object.assign(blankState(),s); STATE.route=STATE.route||{image:null,points:[]}; STATE.jacking=STATE.jacking||[];
-    saveState(); initRouteImg(); renderAll(); toast("가져오기 완료"); }
+    saveState(); renderAll(); if(MAP){ drawRoute(); if(STATE.route.points.length>=2) fitRoute(); } toast("가져오기 완료"); }
     catch(e){ toast("올바른 JSON이 아닙니다.", true); } };
   r.readAsText(file);
 }
 
-/* ---------- 노선도 ---------- */
-function initRouteImg(){
-  const img=document.getElementById("map-img"), ph=document.getElementById("map-placeholder"), svg=document.getElementById("map-svg");
-  if(STATE.route.image){ img.src=STATE.route.image; img.classList.remove("hidden"); ph.classList.add("hidden"); svg.classList.remove("hidden"); }
-  else { img.classList.add("hidden"); ph.classList.remove("hidden"); svg.classList.add("hidden"); }
+/* ---------- 노선도 (Leaflet / OpenStreetMap) ---------- */
+let MAP=null, routeLayer=null, pointLayer=null;
+const ROUTE_CENTER=[37.2566,127.0746], ROUTE_ZOOM=14;
+
+function initMap(){
+  if(MAP){ MAP.invalidateSize(); drawRoute(); return; }
+  MAP=L.map("map-leaflet",{zoomControl:true,scrollWheelZoom:true}).setView(ROUTE_CENTER, ROUTE_ZOOM);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(MAP);
+  routeLayer=L.layerGroup().addTo(MAP);
+  pointLayer=L.layerGroup().addTo(MAP);
+  MAP.on("click", e=>{ if(!calibrating) return;
+    STATE.route.points.push({lat:e.latlng.lat, lng:e.latlng.lng}); saveState(); drawRoute(); });
+  setTimeout(()=>{ MAP.invalidateSize(); if(STATE.route.points.length>=2) fitRoute(); drawRoute(); }, 120);
 }
-function uploadMap(file){
-  const r=new FileReader();
-  r.onload=()=>{ const im=new Image(); im.onload=()=>{
-      const max=1600, sc=Math.min(1, max/im.width); const c=document.createElement("canvas");
-      c.width=im.width*sc; c.height=im.height*sc; c.getContext("2d").drawImage(im,0,0,c.width,c.height);
-      STATE.route.image=c.toDataURL("image/jpeg",0.85); saveState(); initRouteImg(); drawRoute(); toast("지도 업로드 완료 · 보정 모드로 노선을 그리세요");
-    }; im.src=r.result; };
-  r.readAsDataURL(file);
+function routeLatLngs(){ return STATE.route.points.map(p=>L.latLng(p.lat,p.lng)); }
+function routeTotalMeters(){ const ll=routeLatLngs(); let t=0; for(let i=1;i<ll.length;i++) t+=ll[i-1].distanceTo(ll[i]); return t; }
+function latlngAtM(m){
+  const ll=routeLatLngs(), total=routeTotalMeters(); if(ll.length<2) return ll[0]||null;
+  let target=(m/TOTAL)*total, acc=0;
+  for(let i=1;i<ll.length;i++){ const d=ll[i-1].distanceTo(ll[i]);
+    if(acc+d>=target){ const t=d?(target-acc)/d:0; return L.latLng(ll[i-1].lat+(ll[i].lat-ll[i-1].lat)*t, ll[i-1].lng+(ll[i].lng-ll[i-1].lng)*t); } acc+=d; }
+  return ll[ll.length-1];
 }
-function svgPt(evt){
-  const svg=document.getElementById("map-svg"); const r=svg.getBoundingClientRect();
-  return { x:(evt.clientX-r.left)/r.width, y:(evt.clientY-r.top)/r.height };
+function subLatLngs(a,b){
+  const ll=routeLatLngs(), total=routeTotalMeters(); if(ll.length<2||total===0) return [];
+  const pa=(a/TOTAL)*total, pb=(b/TOTAL)*total, out=[latlngAtM(a)]; let acc=0;
+  for(let i=1;i<ll.length;i++){ if(acc>pa+0.01 && acc<pb-0.01) out.push(ll[i-1]); acc+=ll[i-1].distanceTo(ll[i]); }
+  if(acc>pa+0.01 && acc<pb-0.01) out.push(ll[ll.length-1]);
+  out.push(latlngAtM(b)); return out;
 }
-function polyPx(pts, W, H){ return pts.map(p=>({x:p.x*W, y:p.y*H})); }
-function segLengths(px){ const L=[]; for(let i=1;i<px.length;i++) L.push(Math.hypot(px[i].x-px[i-1].x, px[i].y-px[i-1].y)); return L; }
-/* m 위치 → 폴리라인상의 점 */
-function pointAtMeter(px, totalPxLen, m){
-  let target=(m/TOTAL)*totalPxLen, acc=0;
-  for(let i=1;i<px.length;i++){ const d=Math.hypot(px[i].x-px[i-1].x, px[i].y-px[i-1].y);
-    if(acc+d>=target){ const t=d? (target-acc)/d:0; return { x:px[i-1].x+(px[i].x-px[i-1].x)*t, y:px[i-1].y+(px[i].y-px[i-1].y)*t }; } acc+=d; }
-  return px[px.length-1];
-}
-/* m 구간 [a,b] → path */
-function subPath(px, totalPxLen, a, b){
-  const pa=(a/TOTAL)*totalPxLen, pb=(b/TOTAL)*totalPxLen; let acc=0, pts=[];
-  const at=t=>pointAtMeter(px,totalPxLen,t);
-  pts.push(at(a));
-  for(let i=1;i<px.length;i++){ const d=Math.hypot(px[i].x-px[i-1].x, px[i].y-px[i-1].y);
-    const segStart=acc, segEnd=acc+d;
-    if(segEnd>pa && segStart<pb){ if(segStart>pa && segStart<pb) pts.push(px[i-1]); }
-    acc=segEnd;
-  }
-  pts.push(at(b));
-  return "M "+pts.map(p=>`${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" L ");
-}
+function fitRoute(){ const ll=routeLatLngs(); if(ll.length>=2) MAP.fitBounds(L.latLngBounds(ll).pad(0.2)); else MAP.setView(ROUTE_CENTER,ROUTE_ZOOM); }
+function poly(a,b,color,opacity){ const pts=subLatLngs(a,b); if(pts.length>=2) L.polyline(pts,{color,weight:8,opacity:opacity||1,lineCap:"round",lineJoin:"round"}).addTo(routeLayer); }
+
 function drawRoute(){
-  const svg=document.getElementById("map-svg"), img=document.getElementById("map-img");
-  if(!STATE.route.image){ return; }
-  const W=img.clientWidth||img.naturalWidth, H=img.clientHeight||img.naturalHeight;
-  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  if(!MAP) return;
+  routeLayer.clearLayers(); pointLayer.clearLayers();
   const pts=STATE.route.points;
-  let html="";
   if(pts.length>=2){
-    const px=polyPx(pts,W,H); const total=segLengths(px).reduce((a,b)=>a+b,0);
-    // 베이스 라인(미착수=회색)
-    html+=`<path d="${subPath(px,total,0,TOTAL)}" fill="none" stroke="${C_GRAY}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>`;
+    poly(0,TOTAL,C_GRAY,1);                                   // 미착수 베이스
     if(routeColorMode==="stage"){
-      const done=stageDone(6), head=stageDone(0);
-      if(head>0) html+=`<path d="${subPath(px,total,0,head)}" fill="none" stroke="${C_GOLD}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>`;
-      if(done>0) html+=`<path d="${subPath(px,total,0,done)}" fill="none" stroke="${C_GREEN}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>`;
-      // 선단 마커
-      if(head>0){ const hp=pointAtMeter(px,total,head);
-        html+=`<circle cx="${hp.x}" cy="${hp.y}" r="6" fill="${C_ORANGE}" class="head-pulse"/><circle cx="${hp.x}" cy="${hp.y}" r="6" fill="${C_ORANGE}"/>`; }
+      const head=stageDone(0), done=stageDone(6);
+      if(head>0) poly(0,head,C_GOLD,1);
+      if(done>0) poly(0,done,C_GREEN,1);
+      if(head>0){ const hp=latlngAtM(head);
+        L.circleMarker(hp,{radius:7,color:"#fff",weight:2,fillColor:C_ORANGE,fillOpacity:1}).addTo(routeLayer).bindTooltip(`선단 ${chainLabel(head)}`); }
     } else {
-      SECTIONS.forEach(sec=>{ html+=`<path d="${subPath(px,total,sec.start,sec.end)}" fill="none" stroke="${REGION_COLORS[sec.region]}" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>`; });
+      SECTIONS.forEach(sec=> poly(sec.start,sec.end,REGION_COLORS[sec.region],0.85));
     }
   }
-  // 보정 점
-  pts.forEach((p,i)=>{ html+=`<circle cx="${p.x*W}" cy="${p.y*H}" r="4" fill="#fff" stroke="${C_NAVY}" stroke-width="2"/>`;
-    if(i===0) html+=`<text x="${p.x*W+6}" y="${p.y*H-6}" font-size="11" fill="${C_NAVY}" font-family="monospace">0m</text>`;
-    if(i===pts.length-1 && pts.length>1) html+=`<text x="${p.x*W+6}" y="${p.y*H-6}" font-size="11" fill="${C_NAVY}" font-family="monospace">${TOTAL}m</text>`; });
-  svg.innerHTML=html;
-  document.getElementById("route-status").textContent = calibrating
-    ? `보정 중 · 점 ${pts.length}개 (노선을 따라 클릭)`
-    : (pts.length>=2 ? `노선 점 ${pts.length}개 · 시점0m~종점${TOTAL}m` : "보정 모드를 켜고 노선을 따라 점을 찍으세요");
+  pts.forEach((p,i)=>{
+    const cm=L.circleMarker([p.lat,p.lng],{radius:4,color:C_NAVY,weight:2,fillColor:"#fff",fillOpacity:1}).addTo(pointLayer);
+    if(i===0) cm.bindTooltip("시점 0m",{permanent:true,direction:"top",className:"route-tip"});
+    else if(i===pts.length-1) cm.bindTooltip(`종점 ${fmt(TOTAL)}m`,{permanent:true,direction:"top",className:"route-tip"});
+  });
+  const st=document.getElementById("route-status");
+  if(st) st.textContent = calibrating
+    ? `보정 중 · 점 ${pts.length}개 — 지도에서 노선을 따라 클릭 (첫 점=시점, 마지막 점=종점)`
+    : (pts.length>=2 ? `노선 점 ${pts.length}개 · 시점 0m ~ 종점 ${fmt(TOTAL)}m` : "‘보정 모드’를 켜고 지도에서 노선을 따라 점을 찍으세요");
 }
 
 /* ===== 유틸 ===== */
@@ -441,7 +428,7 @@ function toast(msg, err){ const t=document.createElement("div");
 function showView(v){
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active", s.id==="view-"+v));
   document.querySelectorAll(".nav-link").forEach(a=>a.classList.toggle("active", a.dataset.view===v));
-  if(v==="route") setTimeout(drawRoute,50);
+  if(v==="route") setTimeout(initMap,50);
   location.hash=v;
 }
 
@@ -449,7 +436,6 @@ function showView(v){
 function init(){
   buildInputForm();
   document.getElementById("input-date").value=todayStr();
-  initRouteImg();
   renderAll();
 
   document.querySelectorAll(".nav-link").forEach(a=>a.addEventListener("click", e=>{ e.preventDefault(); showView(a.dataset.view); }));
@@ -462,16 +448,14 @@ function init(){
   document.getElementById("btn-export").addEventListener("click", exportJSON);
   document.getElementById("btn-export-csv").addEventListener("click", exportCSV);
   document.getElementById("import-file").addEventListener("change", e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); });
-  document.getElementById("btn-reset").addEventListener("click", ()=>{ if(confirm("모든 입력 기록과 노선 보정을 삭제합니다. 계속할까요?")){ STATE=blankState(); saveState(); initRouteImg(); renderAll(); toast("초기화 완료"); }});
+  document.getElementById("btn-reset").addEventListener("click", ()=>{ if(confirm("모든 입력 기록과 노선 보정을 삭제합니다. 계속할까요?")){ STATE=blankState(); saveState(); renderAll(); if(MAP) drawRoute(); toast("초기화 완료"); }});
 
-  document.getElementById("map-file").addEventListener("change", e=>{ if(e.target.files[0]) uploadMap(e.target.files[0]); });
   document.getElementById("btn-calibrate").addEventListener("click", function(){ calibrating=!calibrating;
     this.classList.toggle("bg-primary", calibrating); this.classList.toggle("text-white", calibrating); drawRoute(); });
   document.getElementById("btn-undo-point").addEventListener("click", ()=>{ STATE.route.points.pop(); saveState(); drawRoute(); });
-  document.getElementById("btn-clear-points").addEventListener("click", ()=>{ STATE.route.points=[]; saveState(); drawRoute(); });
-  document.getElementById("map-svg").addEventListener("click", e=>{ if(!calibrating||!STATE.route.image) return;
-    STATE.route.points.push(svgPt(e)); saveState(); drawRoute(); });
-  window.addEventListener("resize", ()=>{ if(document.getElementById("view-route").classList.contains("active")) drawRoute(); });
+  document.getElementById("btn-clear-points").addEventListener("click", ()=>{ if(STATE.route.points.length && !confirm("노선 점을 모두 지울까요?")) return; STATE.route.points=[]; saveState(); drawRoute(); });
+  document.getElementById("btn-fit").addEventListener("click", ()=>{ if(MAP) fitRoute(); });
+  window.addEventListener("resize", ()=>{ if(MAP && document.getElementById("view-route").classList.contains("active")) MAP.invalidateSize(); });
 
   const start=(location.hash||"#dashboard").slice(1);
   showView(["dashboard","input","route","settings"].includes(start)?start:"dashboard");

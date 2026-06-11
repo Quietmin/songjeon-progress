@@ -6,6 +6,8 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=Inter:wght@400;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   tailwind.config = {
     darkMode: "class",
@@ -185,21 +187,14 @@
     </div>
 
     <div class="bg-white border border-border-subtle rounded-2xl p-4 shadow-sm">
-      <div class="flex flex-wrap items-center gap-2 mb-4 no-print">
-        <label class="bg-surface-container-low border border-border-subtle px-3 py-1.5 rounded-lg text-[13px] cursor-pointer hover:bg-surface-container-high flex items-center gap-2">
-          <span class="material-symbols-outlined text-sm text-primary">upload</span> 지도 업로드
-          <input type="file" id="map-file" accept="image/*" class="hidden"/>
-        </label>
+      <div class="flex flex-wrap items-center gap-2 mb-3 no-print">
         <button id="btn-calibrate" class="border border-border-subtle px-3 py-1.5 rounded-lg text-[13px] hover:bg-surface-container-high flex items-center gap-2"><span class="material-symbols-outlined text-sm text-primary">timeline</span> 보정 모드</button>
         <button id="btn-undo-point" class="border border-border-subtle px-3 py-1.5 rounded-lg text-[13px] hover:bg-surface-container-high">점 취소</button>
         <button id="btn-clear-points" class="border border-border-subtle px-3 py-1.5 rounded-lg text-[13px] hover:bg-surface-container-high">점 초기화</button>
+        <button id="btn-fit" class="border border-border-subtle px-3 py-1.5 rounded-lg text-[13px] hover:bg-surface-container-high">노선 맞춤</button>
         <span id="route-status" class="text-[12px] text-on-surface-variant ml-2"></span>
       </div>
-      <div id="map-wrap" class="relative w-full bg-surface-gray rounded-xl overflow-hidden border border-border-subtle min-h-[300px] flex items-center justify-center">
-        <p id="map-placeholder" class="text-on-surface-variant text-sm py-20 text-center"><span class="material-symbols-outlined text-3xl block mb-2 text-surface-dim">map</span>지도 이미지를 업로드하세요</p>
-        <img id="map-img" class="hidden w-full block" alt="노선 지도"/>
-        <svg id="map-svg" class="absolute inset-0 w-full h-full hidden" preserveAspectRatio="none"></svg>
-      </div>
+      <div id="map-leaflet" class="w-full rounded-xl overflow-hidden border border-border-subtle z-0" style="height:560px"></div>
     </div>
   </section>
 
