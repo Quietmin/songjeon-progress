@@ -31,7 +31,7 @@ const REGION_COLORS = { "수원":"#002a5c", "용인":"#006e25" };
 /* ===== 상태 ===== */
 const LS_KEY = "songjeon_v1";
 let STATE = loadState();
-let dashColorMode = "stage";  // stage | region
+let scaleMode = "ratio";  // ratio | real
 let routeColorMode = "stage";
 let calibrating = false;
 
@@ -139,39 +139,32 @@ function renderDashboard(){
       <p class="text-[12px] text-on-surface-variant mt-0.5">${k.sub}</p>
     </div>`).join("");
 
-  // 범례
-  document.getElementById("section-legend").innerHTML = dashColorMode==="stage"
-    ? `<span class="flex items-center gap-1"><i class="w-3 h-3 rounded-full inline-block" style="background:${C_GREEN}"></i>본포장 완료</span>
-       <span class="flex items-center gap-1"><i class="w-3 h-3 rounded-full inline-block" style="background:${C_GOLD}"></i>진행중</span>
-       <span class="flex items-center gap-1"><i class="w-3 h-3 rounded-full inline-block" style="background:${C_GRAY}"></i>미착수</span>`
-    : `<span class="flex items-center gap-1"><i class="w-3 h-3 rounded-full inline-block" style="background:${REGION_COLORS['수원']}"></i>수원</span>
-       <span class="flex items-center gap-1"><i class="w-3 h-3 rounded-full inline-block" style="background:${REGION_COLORS['용인']}"></i>용인</span>`;
+  // 범례: 7단계 + 미착수
+  document.getElementById("section-legend").innerHTML =
+    STAGES.map((nm,i)=>`<span class="flex items-center gap-1"><i class="w-3 h-3 rounded-sm inline-block" style="background:${STAGE_COLORS[i]}"></i>${nm}</span>`).join("")
+    + `<span class="flex items-center gap-1"><i class="w-3 h-3 rounded-sm inline-block" style="background:${C_GRAY}"></i>미착수</span>`;
 
-  // 구간별 바
+  // 구간별 바 (7단계 계단식 스택)
+  const maxLen = Math.max(...SECTIONS.map(s=>s.openLen));
   document.getElementById("section-bars").innerHTML = SECTIONS.map(sec=>{
     const comp = sectionComposite(sec);
-    const completed = stageDoneInSection(6, sec);      // 본포장
-    const head = stageDoneInSection(0, sec);           // 터파기 선단
     const len = sec.openLen;
-    let segs;
-    if(dashColorMode==="stage"){
-      const g = completed/len*100, gold=Math.max(0,(head-completed))/len*100;
-      segs = `<div style="width:${g}%;background:${C_GREEN}" class="h-full"></div>
-              <div style="width:${gold}%;background:${C_GOLD}" class="h-full"></div>
-              <div style="flex:1;background:${C_GRAY}" class="h-full"></div>`;
-    } else {
-      segs = `<div style="width:${comp}%;background:${REGION_COLORS[sec.region]}" class="h-full"></div>
-              <div style="flex:1;background:${C_GRAY}" class="h-full"></div>`;
-    }
+    const cum = []; for(let i=0;i<7;i++) cum.push(stageDoneInSection(i,sec));
+    const head = cum[0];
+    // 본포장 → 가포장 → … → 터파기 → 미착수
+    let segs = cum[6]>0 ? `<div style="width:${cum[6]/len*100}%;background:${STAGE_COLORS[6]}" class="h-full" title="본포장 ${fmt(cum[6])}m"></div>` : "";
+    for(let i=5;i>=0;i--){ const w=Math.max(0,cum[i]-cum[i+1]); if(w>0)
+      segs += `<div style="width:${w/len*100}%;background:${STAGE_COLORS[i]}" class="h-full" title="${STAGES[i]} 누적 ${fmt(cum[i])}m"></div>`; }
+    segs += `<div style="flex:1 1 auto;background:${C_GRAY}" class="h-full"></div>`;
+    const trackW = scaleMode==="real" ? (len/maxLen*100) : 100;
     const headChain = head>0 ? chainLabel(sec.start+head) : "-";
     const mixedTag = sec.mixed ? `<span class="text-[10px] text-outline ml-1">+압입</span>` : "";
-    const tip = STAGES.map((nm,i)=>`${nm} ${fmt(stageDoneInSection(i,sec))}m`).join(" · ");
-    return `<div title="${tip}">
+    return `<div>
       <div class="flex items-center justify-between mb-1">
         <span class="text-sm font-semibold text-on-surface">${sec.name} <span class="font-mono text-[11px] text-outline">${sec.region} · ${fmt(len)}m</span>${mixedTag}</span>
         <span class="font-mono text-[12px] text-primary font-semibold">${pct1(comp)}% <span class="text-outline">· 선단 ${headChain}</span></span>
       </div>
-      <div class="flex w-full h-5 rounded-full overflow-hidden bg-surface-dim">${segs}</div>
+      <div class="flex h-5 rounded-full overflow-hidden bg-surface-dim" style="width:${trackW}%">${segs}</div>
     </div>`;
   }).join("");
 
@@ -461,8 +454,8 @@ function init(){
 
   document.querySelectorAll(".nav-link").forEach(a=>a.addEventListener("click", e=>{ e.preventDefault(); showView(a.dataset.view); }));
   document.getElementById("btn-save").addEventListener("click", saveEntries);
-  document.getElementById("toggle-stage").addEventListener("click", ()=>setDashMode("stage"));
-  document.getElementById("toggle-region").addEventListener("click", ()=>setDashMode("region"));
+  document.getElementById("scale-ratio").addEventListener("click", ()=>setScaleMode("ratio"));
+  document.getElementById("scale-real").addEventListener("click", ()=>setScaleMode("real"));
   document.getElementById("route-color-stage").addEventListener("click", ()=>{ routeColorMode="stage"; setRouteToggle(); drawRoute(); });
   document.getElementById("route-color-region").addEventListener("click", ()=>{ routeColorMode="region"; setRouteToggle(); drawRoute(); });
 
@@ -483,9 +476,9 @@ function init(){
   const start=(location.hash||"#dashboard").slice(1);
   showView(["dashboard","input","route","settings"].includes(start)?start:"dashboard");
 }
-function setDashMode(m){ dashColorMode=m;
-  document.getElementById("toggle-stage").className=`px-4 py-1.5 ${m==="stage"?"bg-primary text-white font-semibold":"text-on-surface-variant"}`;
-  document.getElementById("toggle-region").className=`px-4 py-1.5 ${m==="region"?"bg-primary text-white font-semibold":"text-on-surface-variant"}`;
+function setScaleMode(m){ scaleMode=m;
+  document.getElementById("scale-ratio").className=`px-4 py-1.5 ${m==="ratio"?"bg-primary text-white font-semibold":"text-on-surface-variant"}`;
+  document.getElementById("scale-real").className=`px-4 py-1.5 ${m==="real"?"bg-primary text-white font-semibold":"text-on-surface-variant"}`;
   renderDashboard(); }
 function setRouteToggle(){
   document.getElementById("route-color-stage").className=`px-3 py-1.5 ${routeColorMode==="stage"?"bg-primary text-white font-semibold":"text-on-surface-variant"}`;
