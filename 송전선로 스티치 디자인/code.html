@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>일일 공정 입력 - Transmission Precision</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=Inter:wght@400;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "depth-blue": "#002752",
+                      "on-secondary-container": "#007327",
+                      "surface-container-high": "#e0e9f2",
+                      "inverse-surface": "#293138",
+                      "on-background": "#141d23",
+                      "on-tertiary-fixed": "#261a00",
+                      "border-subtle": "#E9ECEF",
+                      "inverse-primary": "#abc7ff",
+                      "on-tertiary": "#ffffff",
+                      "on-tertiary-fixed-variant": "#5b4300",
+                      "secondary-container": "#80f98b",
+                      "secondary-fixed": "#83fc8e",
+                      "inverse-on-surface": "#e9f2fb",
+                      "error-container": "#ffdad6",
+                      "on-surface-variant": "#434751",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-container": "#dca600",
+                      "kpi-navy": "#001F3F",
+                      "primary-fixed": "#d7e3ff",
+                      "on-primary-container": "#84aefa",
+                      "outline": "#737782",
+                      "on-error-container": "#93000a",
+                      "surface-container": "#e6eff8",
+                      "error": "#ba1a1a",
+                      "on-primary-fixed-variant": "#0c458b",
+                      "surface-bright": "#f6faff",
+                      "surface-tint": "#305ea4",
+                      "surface-gray": "#F8F9FA",
+                      "surface-container-low": "#ecf5fe",
+                      "surface-container-highest": "#dbe4ed",
+                      "on-primary-fixed": "#001b3f",
+                      "on-error": "#ffffff",
+                      "on-secondary-fixed-variant": "#00531a",
+                      "safety-orange": "#FD7E14",
+                      "on-secondary": "#ffffff",
+                      "surface-dim": "#d2dbe4",
+                      "surface-variant": "#dbe4ed",
+                      "primary": "#002a5c",
+                      "primary-container": "#004085",
+                      "secondary-fixed-dim": "#66df75",
+                      "background": "#f6faff",
+                      "tertiary-fixed": "#ffdf9e",
+                      "surface": "#f6faff",
+                      "on-surface": "#141d23",
+                      "tertiary-fixed-dim": "#fabd00",
+                      "on-primary": "#ffffff",
+                      "outline-variant": "#c3c6d2",
+                      "tertiary-container": "#553e00",
+                      "primary-fixed-dim": "#abc7ff",
+                      "secondary": "#006e25",
+                      "tertiary": "#392900",
+                      "on-secondary-fixed": "#002106"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "margin-page": "40px",
+                      "max-width-content": "1440px",
+                      "base": "8px",
+                      "gutter-desktop": "24px",
+                      "grid-column-count": "12"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "Hanken Grotesk"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Hanken Grotesk"
+                      ],
+                      "label-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "title-md": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Hanken Grotesk"
+                      ],
+                      "chain-no": [
+                              "JetBrains Mono"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-mono": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "title-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "chain-no": [
+                              "10px",
+                              {
+                                      "lineHeight": "12px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+          .glass-panel {
+              background: rgba(255, 255, 255, 0.95);
+              backdrop-filter: blur(10px);
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+              border: 1px solid rgba(233, 236, 239, 0.8);
+          }
+          .input-focus-glow:focus-within {
+              box-shadow: inset 0 0 0 2px #002a5c;
+              border-color: transparent;
+          }
+          .input-success {
+              box-shadow: inset 0 0 0 2px #006e25;
+              border-color: transparent;
+              background-color: #f0fdf4;
+          }
+          .input-error {
+              box-shadow: inset 0 0 0 2px #FD7E14;
+              border-color: transparent;
+              background-color: #fff7ed;
+          }
+          
+          input[type=number]::-webkit-inner-spin-button, 
+          input[type=number]::-webkit-outer-spin-button { 
+              -webkit-appearance: none; 
+              margin: 0; 
+          }
+      </style>
+</head>
+<body class="bg-surface-gray text-on-surface font-body-lg min-h-screen flex flex-col md:flex-row">
+<!-- SideNavBar (Desktop) -->
+<nav class="hidden md:flex flex-col bg-surface-container-low w-64 h-screen fixed left-0 top-0 p-4 z-40 border-r border-border-subtle">
+<div class="mb-8 px-2"><h1 class="font-headline-lg text-headline-lg text-primary">송전선로 공사 현황</h1><p class="font-label-mono text-label-mono text-on-surface-variant mt-2">마지막 동기화: 10:45 AM</p></div>
+<ul class="flex flex-col gap-2 flex-grow">
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+<span>대시보드</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 bg-secondary-container text-on-secondary-container rounded-xl font-bold px-4 py-3 translate-x-1 duration-200 shadow-sm" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">edit_document</span>
+<span>일일 입력</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">map</span>
+<span>노선도</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span>설정</span>
+</a>
+</li>
+</ul>
+<div class="mt-auto">
+<button class="w-full py-2 border border-outline rounded-lg text-primary hover:bg-surface-container-high transition-colors font-label-mono text-label-mono flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">print</span> 보고서 출력
+            </button>
+</div>
+</nav>
+<!-- TopNavBar (Mobile) -->
+<header class="md:hidden flex justify-between items-center w-full px-margin-mobile py-4 bg-surface shadow-sm sticky top-0 z-50">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-bold text-primary">송전선로 공사 현황</h1>
+<div class="flex items-center gap-4 text-primary">
+<span class="material-symbols-outlined cursor-pointer hover:opacity-80">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:opacity-80">cloud</span>
+</div>
+</header>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 w-full bg-surface-gray border-t border-border-subtle z-50 pb-safe">
+<ul class="flex justify-around items-center py-3">
+<li class="flex flex-col items-center">
+<span class="material-symbols-outlined text-on-surface-variant">dashboard</span>
+<span class="font-label-mono text-[10px] text-on-surface-variant mt-1">대시보드</span>
+</li>
+<li class="flex flex-col items-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">edit_document</span>
+<span class="font-label-mono text-[10px] font-bold mt-1">일일 입력</span>
+</li>
+<li class="flex flex-col items-center">
+<span class="material-symbols-outlined text-on-surface-variant">map</span>
+<span class="font-label-mono text-[10px] text-on-surface-variant mt-1">노선도</span>
+</li>
+<li class="flex flex-col items-center">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+<span class="font-label-mono text-[10px] text-on-surface-variant mt-1">설정</span>
+</li>
+</ul>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-64 p-margin-mobile md:p-margin-page max-w-max-width-content mx-auto w-full mb-20 md:mb-0">
+<!-- Header & Summary -->
+<div class="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4 bg-white p-4 rounded-2xl border border-border-subtle shadow-sm">
+<div class="flex items-center gap-6">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-kpi-navy">일일 공정 입력</h2>
+</div>
+<div class="bg-surface-container-low px-4 py-2 rounded-lg border border-border-subtle flex items-center gap-2 cursor-pointer hover:bg-surface-container-high transition">
+<span class="material-symbols-outlined text-primary text-sm">calendar_today</span>
+<span class="font-title-md text-body-lg font-semibold text-on-surface">2026-06-11</span>
+<span class="material-symbols-outlined text-outline text-sm">arrow_drop_down</span>
+</div>
+</div>
+<div class="flex gap-8 items-center">
+<div class="flex flex-col items-end">
+<p class="font-label-mono text-[10px] text-on-surface-variant uppercase tracking-wider">오늘 총 공정</p>
+<p class="font-title-md text-title-md text-primary flex items-baseline gap-1">
+        142<span class="font-body-sm text-body-sm text-outline">m</span>
+</p>
+</div>
+<div class="h-8 w-px bg-border-subtle"></div>
+<div class="flex flex-col items-end">
+<p class="font-label-mono text-[10px] text-on-surface-variant uppercase tracking-wider">상태</p>
+<span class="inline-flex items-center gap-1 text-secondary bg-secondary-container px-2 py-0.5 rounded text-xs font-semibold">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> 검증 완료
+      </span>
+</div>
+</div>
+</div>
+<!-- Quick Entry -->
+<section class="mb-6">
+<div class="flex items-center gap-4">
+<h3 class="font-title-md text-sm font-bold flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-safety-orange text-lg">bolt</span> 최근 작업 항목
+    </h3>
+<div class="flex gap-2">
+<button class="bg-white border border-border-subtle hover:border-primary px-3 py-1.5 rounded-full text-xs transition shadow-sm flex items-center gap-2 group">
+<span class="font-bold text-on-surface">터파기</span>
+<span class="material-symbols-outlined text-sm text-surface-dim group-hover:text-primary">add_circle</span>
+</button>
+<button class="bg-white border border-border-subtle hover:border-primary px-3 py-1.5 rounded-full text-xs transition shadow-sm flex items-center gap-2 group">
+<span class="font-bold text-on-surface">ELP관 매설</span>
+<span class="material-symbols-outlined text-sm text-surface-dim group-hover:text-primary">add_circle</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Data Entry Form -->
+<form class="space-y-8">
+<!-- Section 1 Group -->
+<section class="bg-white border border-border-subtle rounded-2xl p-6 shadow-sm">
+<div class="mb-4 flex items-center justify-between">
+<h3 class="font-title-md text-title-md text-kpi-navy flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">layers</span>
+      개착식 공정 입력
+    </h3>
+<span class="text-xs text-outline">7개 공정</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Stage 1-7 generated with compact horizontal layout -->
+<div class="bg-surface-container-lowest p-3 border border-border-subtle rounded-xl hover:border-primary transition-colors">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px]">1</span>
+<h4 class="font-bold text-on-surface text-sm">터파기</h4>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">시작</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">종료</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Stage 2 -->
+<div class="bg-surface-container-lowest p-3 border border-border-subtle rounded-xl hover:border-primary transition-colors">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px]">2</span>
+<h4 class="font-bold text-on-surface text-sm">ELP관 매설</h4>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">시작</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">종료</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Stage 3 -->
+<div class="bg-surface-container-lowest p-3 border border-border-subtle rounded-xl hover:border-primary transition-colors">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px]">3</span>
+<h4 class="font-bold text-on-surface text-sm">차폐판 설치</h4>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">시작</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">종료</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Stage 4 -->
+<div class="bg-surface-container-lowest p-3 border border-border-subtle rounded-xl hover:border-primary transition-colors">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px]">4</span>
+<h4 class="font-bold text-on-surface text-sm">되메우기</h4>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">시작</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">종료</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Stage 5 -->
+<div class="bg-surface-container-lowest p-3 border border-border-subtle rounded-xl hover:border-primary transition-colors">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px]">5</span>
+<h4 class="font-bold text-on-surface text-sm">표층 메우기</h4>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">시작</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">종료</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Stage 6 -->
+<div class="bg-surface-container-lowest p-3 border border-border-subtle rounded-xl hover:border-primary transition-colors">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px]">6</span>
+<h4 class="font-bold text-on-surface text-sm">가포장</h4>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">시작</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">종료</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Stage 7 -->
+<div class="bg-surface-container-lowest p-3 border border-border-subtle rounded-xl hover:border-primary transition-colors">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px]">7</span>
+<h4 class="font-bold text-on-surface text-sm">본포장</h4>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">시작</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+<div class="flex items-center justify-between gap-2">
+<span class="text-[10px] text-outline font-bold w-6">종료</span>
+<div class="flex items-center gap-1">
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs focus:ring-1 focus:ring-primary" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section Mixed Method -->
+<section class="bg-white border border-border-subtle rounded-2xl p-6 shadow-sm">
+<div class="mb-4 flex items-center justify-between">
+<h3 class="font-title-md text-title-md text-kpi-navy flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">architecture</span>
+      특수 공법 입력
+    </h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="flex items-center justify-between bg-surface-container-low p-3 rounded-xl border border-border-subtle">
+<div class="flex items-center gap-3">
+<span class="bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px]">8</span>
+<h4 class="font-bold text-on-surface text-sm">강관압입</h4>
+</div>
+<div class="flex gap-4">
+<div class="flex items-center gap-2">
+<span class="text-[10px] text-outline font-bold">시작</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] text-outline font-bold">종료</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between bg-surface-container-low p-3 rounded-xl border border-border-subtle">
+<div class="flex items-center gap-3">
+<span class="bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px]">9</span>
+<h4 class="font-bold text-on-surface text-sm">지향성압입</h4>
+</div>
+<div class="flex gap-4">
+<div class="flex items-center gap-2">
+<span class="text-[10px] text-outline font-bold">시작</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] text-outline font-bold">종료</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">+</span>
+<input class="w-12 border border-border-subtle rounded p-1 text-xs" placeholder="0" type="number"/>
+<span class="text-[10px] text-outline">m</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</form>
+<!-- Floating Submit -->
+<div class="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-50">
+<button class="bg-primary hover:bg-primary-container text-white px-6 py-3 rounded-full shadow-lg font-bold text-base flex items-center gap-2 transition-all transform hover:scale-105">
+<span class="material-symbols-outlined text-xl">save</span>
+  일일 공정 저장
+</button>
+</div>
+</main>
+<script>
+        // Simple script to demonstrate active states
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('focus', (e) => {
+                if(!e.target.disabled) {
+                    e.target.parentElement.classList.add('shadow-sm');
+                }
+            });
+            input.addEventListener('blur', (e) => {
+                 e.target.parentElement.classList.remove('shadow-sm');
+            });
+        });
+    </script>
+</body></html>
