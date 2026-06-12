@@ -183,22 +183,6 @@ function renderDashboard(){
       <span class="font-mono text-[12px] text-on-surface-variant w-28 text-right">${fmt(jackingDoneTotal())}m / ${JACKING_TOTAL}m</span>
     </div>`;
 
-  // 현재 작업
-  const chips=[];
-  SECTIONS.forEach(sec=>{
-    const comp=sectionComposite(sec);
-    if(comp>0.01 && comp<99.99){
-      let active=0; for(let s=0;s<7;s++){ if(stageDoneInSection(s,sec)>0.01) active=s; }
-      const head=stageDoneInSection(0,sec);
-      chips.push(`<span class="inline-flex items-center gap-2 text-[13px] bg-surface-container-low border border-border-subtle rounded-full px-3 py-1.5">
-        <i class="w-2.5 h-2.5 rounded-full" style="background:${C_GOLD}"></i>${sec.name} · ${STAGES[active]} · <span class="font-mono">${chainLabel(sec.start+head)}</span></span>`);
-    }
-  });
-  JACKING.forEach(j=>{ const d=jackingDone(j.key); if(d>0 && d<j.total)
-    chips.push(`<span class="inline-flex items-center gap-2 text-[13px] bg-surface-container-low border border-border-subtle rounded-full px-3 py-1.5">
-      <i class="w-2.5 h-2.5 rounded-full" style="background:${C_NAVY}"></i>${j.name} · <span class="font-mono">${fmt(d)}/${j.total}m</span></span>`); });
-  document.getElementById("current-work").innerHTML = chips.length ? chips.join("") :
-    `<p class="text-[13px] text-on-surface-variant">진행 중인 작업이 없습니다. 일일 입력에서 공정을 기록하세요.</p>`;
 }
 
 /* ---------- 일일 입력 ---------- */
@@ -495,6 +479,8 @@ function init(){
   document.getElementById("btn-undo-point").addEventListener("click", ()=>{ STATE.route.points.pop(); saveState(); drawRoute(); });
   document.getElementById("btn-clear-points").addEventListener("click", ()=>{ if(STATE.route.points.length && !confirm("노선 점을 모두 지울까요?")) return; STATE.route.points=[]; saveState(); drawRoute(); });
   document.getElementById("btn-fit").addEventListener("click", ()=>{ if(MAP) fitRoute(); });
+  window.addEventListener("beforeprint", preparePrintMap);
+  window.addEventListener("afterprint", restoreAfterPrint);
   window.addEventListener("resize", ()=>{ if(MAP && document.getElementById("view-route").classList.contains("active")) MAP.invalidateSize(); });
 
   const start=(location.hash||"#dashboard").slice(1);
@@ -508,4 +494,17 @@ function setRouteToggle(){
   document.getElementById("route-color-stage").className=`px-3 py-1.5 ${routeColorMode==="stage"?"bg-primary text-white font-semibold":"text-on-surface-variant"}`;
   document.getElementById("route-color-region").className=`px-3 py-1.5 ${routeColorMode==="region"?"bg-primary text-white font-semibold":"text-on-surface-variant"}`; }
 
+/* 인쇄: 노선도를 공사 전체 노선에 맞춰(주변 잘라내고) 렌더 */
+let _printPrevView=null;
+function preparePrintMap(){
+  if(!MAP){ const rv=document.getElementById("view-route"); if(rv){ rv.classList.add("active"); initMap(); } return; }
+  _printPrevView=(document.querySelector(".view.active")||{}).id||"view-dashboard";
+  document.getElementById("view-route").classList.add("active");
+  MAP.invalidateSize();
+  if(STATE.route.points.length>=2) MAP.fitBounds(L.latLngBounds(routeLatLngs()).pad(0.05));
+}
+function restoreAfterPrint(){
+  if(_printPrevView){ showView(_printPrevView.replace("view-","")); _printPrevView=null; }
+  if(MAP){ MAP.invalidateSize(); fitRoute(); }
+}
 document.addEventListener("DOMContentLoaded", init);

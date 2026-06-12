@@ -44,31 +44,32 @@
   @keyframes pulse-ring{0%{r:6;opacity:.9}70%{r:16;opacity:0}100%{r:16;opacity:0}}
   .head-pulse{animation:pulse-ring 1.8s ease-out infinite}
   @media print{
-    @page{size:A3 landscape;margin:8mm}
+    @page{size:A3 portrait;margin:8mm}
     html,body{background:#fff!important}
     nav,header,#mobile-bottom,#btn-print,.no-print,#lockgate{display:none!important}
     main{margin:0!important;padding:0!important;max-width:none!important}
     .view{display:none!important}
     #view-dashboard{display:block!important}
-    /* 1페이지 압축 */
-    #view-dashboard{font-size:11px}
-    #view-dashboard h2{font-size:18px!important}
-    #view-dashboard h3{font-size:13px!important;margin:0 0 4px!important}
-    #view-dashboard .shadow-sm{box-shadow:none!important}
-    #view-dashboard .rounded-2xl,#view-dashboard .rounded-2xl.p-6{padding:8px 10px!important}
-    #view-dashboard .mb-6,#view-dashboard .mb-8{margin-bottom:8px!important}
-    #view-dashboard .gap-8{gap:10px!important}
-    #view-dashboard .gap-4{gap:6px!important}
-    #kpi-row{margin-bottom:8px!important}
-    #kpi-row .font-headline{font-size:20px!important}
+    #view-route{display:block!important;break-inside:avoid;margin-top:6mm}
+    #route-status{display:none!important}
+    /* 공통 압축 */
+    #view-dashboard,#view-route{font-size:11px}
+    #view-dashboard h2,#view-route h2{font-size:18px!important}
+    h3{font-size:13px!important;margin:4px 0!important}
+    .shadow-sm{box-shadow:none!important}
+    #view-dashboard .rounded-2xl,#view-route .rounded-2xl{padding:8px 10px!important}
+    .mb-6,.mb-8{margin-bottom:6px!important}
+    #kpi-row{margin-bottom:6px!important}
+    #kpi-row .font-headline{font-size:18px!important}
     #kpi-row .p-4{padding:6px 8px!important}
-    #section-bars{}
     #section-bars>div{margin:3px 0!important}
     #section-bars .h-5{height:13px!important}
-    #stage-totals>div,#stage-totals .totrow{margin:2px 0!important}
-    #stage-totals .h-3\.5{height:10px!important}
-    #current-work .chip,#current-work span{font-size:10px!important}
-    .dash-subtitle,#dash-subtitle{font-size:10px!important}
+    #stage-totals>div{margin:2px 0!important}
+    #dash-subtitle{font-size:10px!important}
+    /* 노선도(지도+범례)만, 공사 전체 노선에 맞춰 잘라서 */
+    #map-leaflet{height:150mm!important;width:100%!important}
+    #route-legend{margin:4px 0 6px!important}
+    .leaflet-control-zoom,.leaflet-control-attribution{display:none!important}
   }
 </style>
 </head>
@@ -163,15 +164,9 @@
       <div id="section-bars" class="space-y-4"></div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div class="bg-white border border-border-subtle rounded-2xl p-6 shadow-sm">
-        <h3 class="font-headline text-xl font-semibold text-kpi-navy flex items-center gap-2 mb-4"><span class="material-symbols-outlined text-primary">stacked_bar_chart</span> 공정별 누적 합계</h3>
-        <div id="stage-totals" class="space-y-3"></div>
-      </div>
-      <div class="bg-white border border-border-subtle rounded-2xl p-6 shadow-sm">
-        <h3 class="font-headline text-xl font-semibold text-kpi-navy flex items-center gap-2 mb-4"><span class="material-symbols-outlined text-safety-orange">my_location</span> 현재 작업 현황</h3>
-        <div id="current-work" class="flex flex-wrap gap-2"></div>
-      </div>
+    <div class="bg-white border border-border-subtle rounded-2xl p-6 shadow-sm">
+      <h3 class="font-headline text-xl font-semibold text-kpi-navy flex items-center gap-2 mb-4"><span class="material-symbols-outlined text-primary">stacked_bar_chart</span> 공정별 누적 합계</h3>
+      <div id="stage-totals" class="space-y-3"></div>
     </div>
   </section>
 
@@ -277,5 +272,5 @@
   </section>
 
 </main>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body></html>
