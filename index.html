@@ -54,6 +54,36 @@
 </head>
 <body class="bg-surface-gray text-on-surface min-h-screen flex flex-col md:flex-row">
 
+<!-- 비밀번호 잠금 (해시만 저장 — 가벼운 접근 차단용) -->
+<div id="lockgate" class="fixed inset-0 z-[60] flex items-center justify-center bg-surface-gray">
+  <div class="bg-white border border-border-subtle rounded-2xl shadow-sm p-8 w-[320px] text-center">
+    <div class="font-headline text-2xl font-semibold text-primary mb-1">송전선로 공사 현황</div>
+    <p class="text-[13px] text-on-surface-variant mb-5">비밀번호를 입력하세요</p>
+    <input id="lock-input" type="password" inputmode="numeric" autocomplete="off" class="w-full border border-border-subtle rounded-lg p-2.5 text-center text-lg tracking-[0.4em] focus:ring-2 focus:ring-primary focus:outline-none mb-2" placeholder="••••"/>
+    <p id="lock-error" class="text-[12px] text-error h-4 mb-2"></p>
+    <button id="lock-btn" class="w-full bg-primary hover:bg-primary-container text-white rounded-lg py-2.5 font-semibold transition-colors">열기</button>
+  </div>
+</div>
+<script>
+(function(){
+  var HASH="15e922d2d8a00b9abae4ffa20e103b16ff780a965ed72359c8e0a28c552aa196";
+  var gate=document.getElementById('lockgate'), inp=document.getElementById('lock-input'),
+      btn=document.getElementById('lock-btn'), err=document.getElementById('lock-error');
+  if(sessionStorage.getItem('songjeon_unlock')==='1'){ gate.remove(); return; }
+  document.documentElement.style.overflow='hidden';
+  async function sha256(s){ var b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0');}).join(''); }
+  async function tryUnlock(){
+    var h=await sha256((inp.value||'').trim());
+    if(h===HASH){ sessionStorage.setItem('songjeon_unlock','1'); document.documentElement.style.overflow=''; gate.remove(); }
+    else { err.textContent='비밀번호가 올바르지 않습니다'; inp.value=''; inp.focus(); }
+  }
+  btn.addEventListener('click', tryUnlock);
+  inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); tryUnlock(); } });
+  setTimeout(function(){ inp.focus(); }, 50);
+})();
+</script>
+
 <!-- Desktop Sidebar -->
 <nav class="hidden md:flex flex-col bg-surface-container-low w-64 h-screen fixed left-0 top-0 p-4 z-40 border-r border-border-subtle">
   <div class="mb-8 px-2">
