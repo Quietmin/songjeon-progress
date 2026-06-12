@@ -23,8 +23,8 @@ const JACKING = [
 ];
 const JACKING_TOTAL = 227;
 
-/* 단계별 색(완료=초록 → 미착수 직전=옅은 초록). DESIGN.md 기반 */
-const STAGE_COLORS = ["#cfe8d6","#a9d8b4","#84c896","#5db877","#3aa75e","#1f8f46","#006e25"];
+/* 단계별 색: 대비가 뚜렷한 순차 팔레트(완료=진한 초록) */
+const STAGE_COLORS = ["#A7ACB9","#3F7BD8","#7E5BD6","#E8833A","#F4C20D","#5FB878","#0E7A32"];
 const C_GREEN="#006e25", C_GOLD="#fabd00", C_GRAY="#d2dbe4", C_ORANGE="#FD7E14", C_NAVY="#002a5c";
 const REGION_COLORS = { "수원":"#002a5c", "용인":"#006e25" };
 
@@ -357,7 +357,15 @@ function importJSON(file){
 
 /* ---------- 노선도 (Leaflet / OpenStreetMap) ---------- */
 let MAP=null, routeLayer=null, pointLayer=null;
-const ROUTE_CENTER=[37.2566,127.0746], ROUTE_ZOOM=14;
+const ROUTE_CENTER=[37.2560,127.0760], ROUTE_ZOOM=14;
+/* 기본(예시) 노선: 지역난방공사 수원지사 → 흥덕변전소 대략 경로. 보정 모드로 실제 노선 그리면 대체됨 */
+const DEFAULT_ROUTE=[
+  {lat:37.2466,lng:127.0682},{lat:37.2489,lng:127.0706},{lat:37.2521,lng:127.0734},
+  {lat:37.2557,lng:127.0767},{lat:37.2585,lng:127.0801},{lat:37.2611,lng:127.0823},
+  {lat:37.2634,lng:127.0807},{lat:37.2652,lng:127.0789}
+];
+function activePoints(){ return (STATE.route.points && STATE.route.points.length>=2) ? STATE.route.points : DEFAULT_ROUTE; }
+function usingDefaultRoute(){ return !(STATE.route.points && STATE.route.points.length>=2); }
 
 function initMap(){
   if(MAP){ MAP.invalidateSize(); drawRoute(); return; }
@@ -367,9 +375,9 @@ function initMap(){
   pointLayer=L.layerGroup().addTo(MAP);
   MAP.on("click", e=>{ if(!calibrating) return;
     STATE.route.points.push({lat:e.latlng.lat, lng:e.latlng.lng}); saveState(); drawRoute(); });
-  setTimeout(()=>{ MAP.invalidateSize(); if(STATE.route.points.length>=2) fitRoute(); drawRoute(); }, 120);
+  setTimeout(()=>{ MAP.invalidateSize(); fitRoute(); drawRoute(); }, 120);
 }
-function routeLatLngs(){ return STATE.route.points.map(p=>L.latLng(p.lat,p.lng)); }
+function routeLatLngs(){ return activePoints().map(p=>L.latLng(p.lat,p.lng)); }
 function routeTotalMeters(){ const ll=routeLatLngs(); let t=0; for(let i=1;i<ll.length;i++) t+=ll[i-1].distanceTo(ll[i]); return t; }
 function latlngAtM(m){
   const ll=routeLatLngs(), total=routeTotalMeters(); if(ll.length<2) return ll[0]||null;
@@ -391,8 +399,8 @@ function poly(a,b,color,opacity){ const pts=subLatLngs(a,b); if(pts.length>=2) L
 function drawRoute(){
   if(!MAP) return;
   routeLayer.clearLayers(); pointLayer.clearLayers();
-  const pts=STATE.route.points;
-  if(pts.length>=2){
+  const ap=activePoints();
+  if(ap.length>=2){
     poly(0,TOTAL,C_GRAY,1);                                   // 미착수 베이스
     if(routeColorMode==="stage"){
       const head=stageDone(0), done=stageDone(6);
@@ -403,16 +411,17 @@ function drawRoute(){
     } else {
       SECTIONS.forEach(sec=> poly(sec.start,sec.end,REGION_COLORS[sec.region],0.85));
     }
+    // 시점/종점 라벨
+    const a=latlngAtM(0), b=latlngAtM(TOTAL);
+    if(a) L.circleMarker(a,{radius:5,color:C_NAVY,weight:2,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer).bindTooltip("시점 0m",{permanent:true,direction:"top",className:"route-tip"});
+    if(b) L.circleMarker(b,{radius:5,color:C_NAVY,weight:2,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer).bindTooltip(`종점 ${fmt(TOTAL)}m`,{permanent:true,direction:"top",className:"route-tip"});
   }
-  pts.forEach((p,i)=>{
-    const cm=L.circleMarker([p.lat,p.lng],{radius:4,color:C_NAVY,weight:2,fillColor:"#fff",fillOpacity:1}).addTo(pointLayer);
-    if(i===0) cm.bindTooltip("시점 0m",{permanent:true,direction:"top",className:"route-tip"});
-    else if(i===pts.length-1) cm.bindTooltip(`종점 ${fmt(TOTAL)}m`,{permanent:true,direction:"top",className:"route-tip"});
-  });
+  // 보정 클릭 점(사용자 지정)만 표시
+  STATE.route.points.forEach(p=> L.circleMarker([p.lat,p.lng],{radius:4,color:C_NAVY,weight:2,fillColor:C_GOLD,fillOpacity:1}).addTo(pointLayer));
   const st=document.getElementById("route-status");
   if(st) st.textContent = calibrating
-    ? `보정 중 · 점 ${pts.length}개 — 지도에서 노선을 따라 클릭 (첫 점=시점, 마지막 점=종점)`
-    : (pts.length>=2 ? `노선 점 ${pts.length}개 · 시점 0m ~ 종점 ${fmt(TOTAL)}m` : "‘보정 모드’를 켜고 지도에서 노선을 따라 점을 찍으세요");
+    ? `보정 중 · 점 ${STATE.route.points.length}개 — 지도에서 노선을 따라 클릭 (첫 점=시점, 마지막 점=종점)`
+    : (usingDefaultRoute() ? "기본(예시) 노선 표시 중 · ‘보정 모드’로 실제 노선을 그리면 대체됩니다" : `사용자 노선 ${STATE.route.points.length}개 · 시점 0m ~ 종점 ${fmt(TOTAL)}m`);
 }
 
 /* ===== 유틸 ===== */
