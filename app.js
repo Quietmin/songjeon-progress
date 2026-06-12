@@ -23,8 +23,8 @@ const JACKING = [
 ];
 const JACKING_TOTAL = 227;
 
-/* 단계별 색: 대비가 뚜렷한 순차 팔레트(완료=진한 초록) */
-const STAGE_COLORS = ["#A7ACB9","#3F7BD8","#7E5BD6","#E8833A","#F4C20D","#5FB878","#0E7A32"];
+/* 단계별 색: 진행될수록 진해지는 초록 농담 램프(터파기=연함 → 본포장=진함) */
+const STAGE_COLORS = ["#CDE8D2","#A3D6AC","#74C184","#47A862","#2A8B4B","#136B33","#04481B"];
 const C_GREEN="#006e25", C_GOLD="#fabd00", C_GRAY="#d2dbe4", C_ORANGE="#FD7E14", C_NAVY="#002a5c";
 const REGION_COLORS = { "수원":"#002a5c", "용인":"#006e25" };
 
@@ -227,8 +227,29 @@ function buildInputForm(){
       </div>
     </div>`).join("");
 
-  wrap.querySelectorAll("input").forEach(i=>i.addEventListener("input", updateTodayTotal));
+  wrap.querySelectorAll("input").forEach(i=>i.addEventListener("input", onStageInput));
   document.getElementById("jacking-inputs").querySelectorAll("input").forEach(i=>i.addEventListener("input", updateTodayTotal));
+}
+/* 상위 공정 입력 시 그 전(낮은 번호) 공정들을 같은(또는 더 넓은) 범위로 자동 채움 — 순차 작업 */
+function setPos(prefix, pos){
+  const no=Math.floor(pos/CHAIN), m=Math.round((pos-no*CHAIN)*10)/10;
+  const en=document.querySelector(`[data-k="${prefix}n"]`), em=document.querySelector(`[data-k="${prefix}m"]`);
+  if(en) en.value=no; if(em) em.value=m;
+}
+function mirrorDown(i){
+  const sp=posOf(val(`s${i}n`),val(`s${i}m`)), ep=posOf(val(`e${i}n`),val(`e${i}m`));
+  if(ep<=sp) return;                       // 유효 범위일 때만 전파
+  for(let j=i-1;j>=0;j--){
+    const ej=posOf(val(`e${j}n`),val(`e${j}m`)), sj=posOf(val(`s${j}n`),val(`s${j}m`));
+    const newEnd=Math.max(ej, ep);
+    const newStart = ej>sj ? Math.min(sj, sp) : sp;   // 기존 입력 있으면 더 넓게, 없으면 동일
+    setPos(`s${j}`, newStart); setPos(`e${j}`, newEnd);
+  }
+}
+function onStageInput(e){
+  const k=e.target.dataset.k||"", mt=k.match(/^[se](\d+)[nm]$/);
+  if(mt) mirrorDown(parseInt(mt[1],10));
+  updateTodayTotal();
 }
 function posRow(label, id){
   return `<div class="flex items-center justify-between gap-2">
@@ -358,14 +379,7 @@ function importJSON(file){
 /* ---------- 노선도 (Leaflet / OpenStreetMap) ---------- */
 let MAP=null, routeLayer=null, pointLayer=null;
 const ROUTE_CENTER=[37.2560,127.0760], ROUTE_ZOOM=14;
-/* 기본(예시) 노선: 지역난방공사 수원지사 → 흥덕변전소 대략 경로. 보정 모드로 실제 노선 그리면 대체됨 */
-const DEFAULT_ROUTE=[
-  {lat:37.2466,lng:127.0682},{lat:37.2489,lng:127.0706},{lat:37.2521,lng:127.0734},
-  {lat:37.2557,lng:127.0767},{lat:37.2585,lng:127.0801},{lat:37.2611,lng:127.0823},
-  {lat:37.2634,lng:127.0807},{lat:37.2652,lng:127.0789}
-];
-function activePoints(){ return (STATE.route.points && STATE.route.points.length>=2) ? STATE.route.points : DEFAULT_ROUTE; }
-function usingDefaultRoute(){ return !(STATE.route.points && STATE.route.points.length>=2); }
+function activePoints(){ return STATE.route.points || []; }
 
 function initMap(){
   if(MAP){ MAP.invalidateSize(); drawRoute(); return; }
@@ -375,7 +389,15 @@ function initMap(){
   pointLayer=L.layerGroup().addTo(MAP);
   MAP.on("click", e=>{ if(!calibrating) return;
     STATE.route.points.push({lat:e.latlng.lat, lng:e.latlng.lng}); saveState(); drawRoute(); });
-  setTimeout(()=>{ MAP.invalidateSize(); fitRoute(); drawRoute(); }, 120);
+  setTimeout(()=>{ MAP.invalidateSize(); fitRoute(); if(STATE.route.points.length<2) setCalibrate(true); else drawRoute(); }, 120);
+}
+function setCalibrate(on){
+  calibrating=on;
+  const b=document.getElementById("btn-calibrate");
+  b.classList.toggle("bg-primary", on); b.classList.toggle("text-white", on);
+  b.innerHTML = on ? '<span class="material-symbols-outlined text-sm">done</span> 보정 완료'
+                   : '<span class="material-symbols-outlined text-sm text-primary">timeline</span> 보정 모드';
+  drawRoute();
 }
 function routeLatLngs(){ return activePoints().map(p=>L.latLng(p.lat,p.lng)); }
 function routeTotalMeters(){ const ll=routeLatLngs(); let t=0; for(let i=1;i<ll.length;i++) t+=ll[i-1].distanceTo(ll[i]); return t; }
@@ -416,12 +438,17 @@ function drawRoute(){
     if(a) L.circleMarker(a,{radius:5,color:C_NAVY,weight:2,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer).bindTooltip("시점 0m",{permanent:true,direction:"top",className:"route-tip"});
     if(b) L.circleMarker(b,{radius:5,color:C_NAVY,weight:2,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer).bindTooltip(`종점 ${fmt(TOTAL)}m`,{permanent:true,direction:"top",className:"route-tip"});
   }
-  // 보정 클릭 점(사용자 지정)만 표시
-  STATE.route.points.forEach(p=> L.circleMarker([p.lat,p.lng],{radius:4,color:C_NAVY,weight:2,fillColor:C_GOLD,fillOpacity:1}).addTo(pointLayer));
+  // 보정 클릭 점(사용자 지정) 표시 — 보정 중에만 번호 라벨
+  STATE.route.points.forEach((p,idx)=>{
+    const cm=L.circleMarker([p.lat,p.lng],{radius:5,color:C_NAVY,weight:2,fillColor:C_GOLD,fillOpacity:1}).addTo(pointLayer);
+    if(calibrating) cm.bindTooltip(String(idx+1),{permanent:true,direction:"top",className:"route-num"});
+  });
+  const n=STATE.route.points.length;
   const st=document.getElementById("route-status");
   if(st) st.textContent = calibrating
-    ? `보정 중 · 점 ${STATE.route.points.length}개 — 지도에서 노선을 따라 클릭 (첫 점=시점, 마지막 점=종점)`
-    : (usingDefaultRoute() ? "기본(예시) 노선 표시 중 · ‘보정 모드’로 실제 노선을 그리면 대체됩니다" : `사용자 노선 ${STATE.route.points.length}개 · 시점 0m ~ 종점 ${fmt(TOTAL)}m`);
+    ? `보정 중 · 점 ${n}개 — 지도에서 노선을 따라 순서대로 클릭하세요 (첫 점=시점 0m, 마지막 점=종점 ${fmt(TOTAL)}m). 끝나면 ‘보정 완료’`
+    : (n>=2 ? `노선 입력됨 · 점 ${n}개 (시점 0m ~ 종점 ${fmt(TOTAL)}m) · 수정하려면 ‘보정 모드’`
+            : "노선이 아직 없습니다 · ‘보정 모드’를 켜고 지도에서 노선을 클릭해 입력하세요");
 }
 
 /* ===== 유틸 ===== */
@@ -459,8 +486,7 @@ function init(){
   document.getElementById("import-file").addEventListener("change", e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); });
   document.getElementById("btn-reset").addEventListener("click", ()=>{ if(confirm("모든 입력 기록과 노선 보정을 삭제합니다. 계속할까요?")){ STATE=blankState(); saveState(); renderAll(); if(MAP) drawRoute(); toast("초기화 완료"); }});
 
-  document.getElementById("btn-calibrate").addEventListener("click", function(){ calibrating=!calibrating;
-    this.classList.toggle("bg-primary", calibrating); this.classList.toggle("text-white", calibrating); drawRoute(); });
+  document.getElementById("btn-calibrate").addEventListener("click", ()=> setCalibrate(!calibrating));
   document.getElementById("btn-undo-point").addEventListener("click", ()=>{ STATE.route.points.pop(); saveState(); drawRoute(); });
   document.getElementById("btn-clear-points").addEventListener("click", ()=>{ if(STATE.route.points.length && !confirm("노선 점을 모두 지울까요?")) return; STATE.route.points=[]; saveState(); drawRoute(); });
   document.getElementById("btn-fit").addEventListener("click", ()=>{ if(MAP) fitRoute(); });
