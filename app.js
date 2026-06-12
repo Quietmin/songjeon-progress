@@ -23,8 +23,8 @@ const JACKING = [
 ];
 const JACKING_TOTAL = 227;
 
-/* 단계별 색: 진행될수록 진해지는 초록 농담 램프(터파기=연함 → 본포장=진함) */
-const STAGE_COLORS = ["#CDE8D2","#A3D6AC","#74C184","#47A862","#2A8B4B","#136B33","#04481B"];
+/* 단계별 색: 색상이 다르면서 진행할수록 진해지는 순차 팔레트(viridis 계열, 인쇄·흑백 구분 양호) */
+const STAGE_COLORS = ["#FDE725","#90D743","#35B779","#21918C","#31688E","#443983","#440154"];
 const C_GREEN="#006e25", C_GOLD="#fabd00", C_GRAY="#d2dbe4", C_ORANGE="#FD7E14", C_NAVY="#002a5c";
 const REGION_COLORS = { "수원":"#002a5c", "용인":"#006e25" };
 
@@ -425,9 +425,9 @@ function drawRoute(){
   if(ap.length>=2){
     poly(0,TOTAL,C_GRAY,1);                                   // 미착수 베이스
     if(routeColorMode==="stage"){
-      const head=stageDone(0), done=stageDone(6);
-      if(head>0) poly(0,head,C_GOLD,1);
-      if(done>0) poly(0,done,C_GREEN,1);
+      // 구간 바와 동일한 7단계 색: 낮은 단계(긴 구간)부터 그려 높은 단계가 위에 칠해짐
+      for(let i=0;i<7;i++){ const d=stageDone(i); if(d>0) poly(0,d,STAGE_COLORS[i],1); }
+      const head=stageDone(0);
       if(head>0){ const hp=latlngAtM(head);
         L.circleMarker(hp,{radius:7,color:"#fff",weight:2,fillColor:C_ORANGE,fillOpacity:1}).addTo(routeLayer).bindTooltip(`선단 ${chainLabel(head)}`); }
     } else {
@@ -438,17 +438,22 @@ function drawRoute(){
     if(a) L.circleMarker(a,{radius:5,color:C_NAVY,weight:2,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer).bindTooltip("시점 0m",{permanent:true,direction:"top",className:"route-tip"});
     if(b) L.circleMarker(b,{radius:5,color:C_NAVY,weight:2,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer).bindTooltip(`종점 ${fmt(TOTAL)}m`,{permanent:true,direction:"top",className:"route-tip"});
   }
-  // 보정 클릭 점(사용자 지정) 표시 — 보정 중에만 번호 라벨
-  STATE.route.points.forEach((p,idx)=>{
-    const cm=L.circleMarker([p.lat,p.lng],{radius:5,color:C_NAVY,weight:2,fillColor:C_GOLD,fillOpacity:1}).addTo(pointLayer);
-    if(calibrating) cm.bindTooltip(String(idx+1),{permanent:true,direction:"top",className:"route-num"});
+  // 보정 클릭 점은 보정 중에만 표시(완료 후엔 깔끔하게 시점/종점만)
+  if(calibrating) STATE.route.points.forEach((p,idx)=>{
+    L.circleMarker([p.lat,p.lng],{radius:5,color:C_NAVY,weight:2,fillColor:C_GOLD,fillOpacity:1}).addTo(pointLayer)
+      .bindTooltip(String(idx+1),{permanent:true,direction:"top",className:"route-num"});
   });
   const n=STATE.route.points.length;
   const st=document.getElementById("route-status");
   if(st) st.textContent = calibrating
     ? `보정 중 · 점 ${n}개 — 지도에서 노선을 따라 순서대로 클릭하세요 (첫 점=시점 0m, 마지막 점=종점 ${fmt(TOTAL)}m). 끝나면 ‘보정 완료’`
-    : (n>=2 ? `노선 입력됨 · 점 ${n}개 (시점 0m ~ 종점 ${fmt(TOTAL)}m) · 수정하려면 ‘보정 모드’`
+    : (n>=2 ? `노선 입력됨 · 진행 현황 색으로 표시 중 (시점 0m ~ 종점 ${fmt(TOTAL)}m) · 수정하려면 ‘보정 모드’`
             : "노선이 아직 없습니다 · ‘보정 모드’를 켜고 지도에서 노선을 클릭해 입력하세요");
+  const lg=document.getElementById("route-legend");
+  if(lg) lg.innerHTML = routeColorMode==="stage"
+    ? STAGES.map((nm,i)=>`<span class="flex items-center gap-1"><i class="w-3 h-3 rounded-sm inline-block" style="background:${STAGE_COLORS[i]}"></i>${nm}</span>`).join("")
+      + `<span class="flex items-center gap-1"><i class="w-3 h-3 rounded-sm inline-block" style="background:${C_GRAY}"></i>미착수</span>`
+    : `<span class="flex items-center gap-1"><i class="w-3 h-3 rounded-full inline-block" style="background:${REGION_COLORS['수원']}"></i>수원</span><span class="flex items-center gap-1"><i class="w-3 h-3 rounded-full inline-block" style="background:${REGION_COLORS['용인']}"></i>용인</span>`;
 }
 
 /* ===== 유틸 ===== */
