@@ -125,6 +125,27 @@ function unionLength(list){ return unionIntervals(list).reduce((t,[a,b])=>t+(b-a
 function overlapLength(list, lo, hi){
   return unionIntervals(list).reduce((t,[a,b])=>t+Math.max(0, Math.min(b,hi)-Math.max(a,lo)),0);
 }
+/* [lo,hi] 구간을 실제 위치별로 쪼개 각 구간의 '가장 앞선 완료 공정'(lvl, -1=미착수) 런으로 반환 */
+function stageRuns(lo, hi){
+  const pts = new Set([lo,hi]);
+  STATE.entries.forEach(e=>{ const a=Math.max(lo,Math.min(e.startPos,e.endPos)), b=Math.min(hi,Math.max(e.startPos,e.endPos)); if(b>a){ pts.add(a); pts.add(b); } });
+  const xs=[...pts].filter(x=>x>=lo&&x<=hi).sort((p,q)=>p-q);
+  const runs=[];
+  for(let i=0;i<xs.length-1;i++){
+    const a=xs[i], b=xs[i+1]; if(b<=a) continue;
+    const mid=(a+b)/2; let lvl=-1;
+    for(let s=0;s<7;s++){ if(STATE.entries.some(e=>e.stage===s && Math.min(e.startPos,e.endPos)<=mid && Math.max(e.startPos,e.endPos)>=mid)) lvl=s; }
+    if(runs.length && runs[runs.length-1].lvl===lvl) runs[runs.length-1].to=b;
+    else runs.push({from:a,to:b,lvl});
+  }
+  return runs;
+}
+/* [lo,hi] 내 특정 공정의 최전방 위치(선단) */
+function stageMaxEndIn(i, lo, hi){
+  let m=0;
+  STATE.entries.filter(e=>e.stage===i).forEach(e=>{ const a=Math.min(e.startPos,e.endPos), b=Math.max(e.startPos,e.endPos); if(a<hi && b>lo) m=Math.max(m, Math.min(b,hi)); });
+  return m;
+}
 
 /* 공정별 누적(개착식 전체) */
 function stageDone(stageIdx){
@@ -197,24 +218,24 @@ function renderDashboard(){
     STAGES.map((nm,i)=>`<span class="flex items-center gap-1"><i class="w-3 h-3 rounded-sm inline-block" style="background:${STAGE_COLORS[i]}"></i>${nm}</span>`).join("")
     + `<span class="flex items-center gap-1"><i class="w-3 h-3 rounded-sm inline-block" style="background:${C_GRAY}"></i>미착수</span>`;
 
-  // 구간별 바 (7단계 계단식 스택)
-  const maxLen = Math.max(...SECTIONS.map(s=>s.openLen));
+  // 구간별 바 (실제 위치별 진행 — 작업한 위치에만 색)
+  const maxLen = Math.max(...SECTIONS.map(s=>s.end-s.start));
   document.getElementById("section-bars").innerHTML = SECTIONS.map(sec=>{
     const comp = sectionComposite(sec);
-    const len = sec.openLen;
-    const cum = []; for(let i=0;i<7;i++) cum.push(stageDoneInSection(i,sec));
-    const head = cum[0];
-    // 본포장 → 가포장 → … → 터파기 → 미착수
-    let segs = cum[6]>0 ? `<div style="width:${cum[6]/len*100}%;background:${STAGE_COLORS[6]}" class="h-full" title="본포장 ${fmt(cum[6])}m"></div>` : "";
-    for(let i=5;i>=0;i--){ const w=Math.max(0,cum[i]-cum[i+1]); if(w>0)
-      segs += `<div style="width:${w/len*100}%;background:${STAGE_COLORS[i]}" class="h-full" title="${STAGES[i]} 누적 ${fmt(cum[i])}m"></div>`; }
-    segs += `<div style="flex:1 1 auto;background:${C_GRAY}" class="h-full"></div>`;
-    const trackW = scaleMode==="real" ? (len/maxLen*100) : 100;
-    const headChain = head>0 ? chainLabel(sec.start+head) : "-";
+    const barLen = sec.end - sec.start;                 // 지리적 길이로 위치 매핑
+    const runs = stageRuns(sec.start, sec.end);
+    const segs = runs.map(r=>{
+      const w=(r.to-r.from)/barLen*100, col=r.lvl>=0?STAGE_COLORS[r.lvl]:C_GRAY;
+      const tip=r.lvl>=0?`${STAGES[r.lvl]} ${chainLabel(r.from)}~${chainLabel(r.to)}`:`미착수 ${chainLabel(r.from)}~${chainLabel(r.to)}`;
+      return `<div style="width:${w}%;background:${col}" class="h-full" title="${tip}"></div>`;
+    }).join("") || `<div style="flex:1;background:${C_GRAY}" class="h-full"></div>`;
+    const trackW = scaleMode==="real" ? (barLen/maxLen*100) : 100;
+    const headPos = stageMaxEndIn(0, sec.start, sec.end);
+    const headChain = headPos>0 ? chainLabel(headPos) : "-";
     const mixedTag = sec.mixed ? `<span class="text-[10px] text-outline ml-1">+압입</span>` : "";
     return `<div>
       <div class="flex items-center justify-between mb-1">
-        <span class="text-sm font-semibold text-on-surface">${sec.name} <span class="font-mono text-[11px] text-outline">${sec.region} · ${fmt(len)}m</span>${mixedTag}</span>
+        <span class="text-sm font-semibold text-on-surface">${sec.name} <span class="font-mono text-[11px] text-outline">${sec.region} · ${fmt(sec.openLen)}m</span>${mixedTag}</span>
         <span class="font-mono text-[12px] text-primary font-semibold">${pct1(comp)}% <span class="text-outline">· 선단 ${headChain}</span></span>
       </div>
       <div class="flex h-5 rounded-full overflow-hidden bg-surface-dim" style="width:${trackW}%">${segs}</div>
@@ -463,9 +484,9 @@ function drawRoute(){
   if(ap.length>=2){
     poly(0,TOTAL,C_GRAY,1);                                   // 미착수 베이스
     if(routeColorMode==="stage"){
-      // 구간 바와 동일한 7단계 색: 낮은 단계(긴 구간)부터 그려 높은 단계가 위에 칠해짐
-      for(let i=0;i<7;i++){ const d=stageDone(i); if(d>0) poly(0,d,STAGE_COLORS[i],1); }
-      const head=stageDone(0);
+      // 실제 작업 위치 구간에만 7단계 색 (작업 안 한 구간은 회색 유지)
+      stageRuns(0,TOTAL).forEach(r=>{ if(r.lvl>=0) poly(r.from, r.to, STAGE_COLORS[r.lvl], 1); });
+      const head=stageMaxEndIn(0,0,TOTAL);
       if(head>0){ const hp=latlngAtM(head);
         L.circleMarker(hp,{radius:7,color:"#fff",weight:2,fillColor:C_ORANGE,fillOpacity:1}).addTo(routeLayer).bindTooltip(`선단 ${chainLabel(head)}`); }
     } else {
