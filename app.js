@@ -23,6 +23,19 @@ const JACKING = [
 ];
 const JACKING_TOTAL = 227;
 
+/* 맨홀 (체인 NO.+m 위치) */
+const MANHOLES = [
+  { no:6,  off:19, name:"활락맨홀#1", type:"활락" },
+  { no:21, off:12, name:"접속맨홀#1", type:"접속" },
+  { no:46, off:12, name:"접속맨홀#2", type:"접속" },
+  { no:72, off:12, name:"접속맨홀#3", type:"접속" },
+  { no:87, off:2,  name:"접속맨홀#4", type:"접속" },
+  { no:123,off:2,  name:"접속맨홀#5", type:"접속" },
+  { no:132,off:0,  name:"활락맨홀#2", type:"활락" },
+  { no:146,off:12, name:"접속맨홀#6", type:"접속" },
+  { no:162,off:2,  name:"접속맨홀#7", type:"접속" },
+].map(m=>({ ...m, pos:m.no*20+m.off }));
+
 /* 단계별 색: 색상이 다르면서 진행할수록 진해지는 순차 팔레트(viridis 계열, 인쇄·흑백 구분 양호) */
 const STAGE_COLORS = ["#FDE725","#90D743","#35B779","#21918C","#31688E","#443983","#440154"];
 const C_GREEN="#006e25", C_GOLD="#fabd00", C_GRAY="#d2dbe4", C_ORANGE="#FD7E14", C_NAVY="#002a5c";
@@ -240,7 +253,24 @@ function renderDashboard(){
       </div>
       <div class="flex h-5 rounded-full overflow-hidden bg-surface-dim" style="width:${trackW}%">${segs}</div>
     </div>`;
-  }).join("");
+  }).join("")
+  + `<div class="pt-2 mt-1 border-t border-border-subtle text-[11px] text-on-surface-variant">6구간 비개착(압입) — 미착수 / 공사중 / 완료</div>`
+  + JACKING.map(j=>{
+      const done=jackingDone(j.key), pct=Math.min(100,done/j.total*100);
+      const status = done<=0.01?"미착수":(done>=j.total-0.01?"완료":"공사중");
+      const col = status==="완료"?C_GREEN:(status==="공사중"?C_GOLD:C_GRAY);
+      const trackW = scaleMode==="real" ? (j.total/maxLen*100) : 100;
+      return `<div>
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-sm font-semibold text-on-surface">6구간 ${j.name} <span class="font-mono text-[11px] text-outline">${j.total}m · 비개착</span></span>
+          <span class="font-mono text-[12px] font-semibold" style="color:${col}">${status} · ${fmt(done)}/${j.total}m</span>
+        </div>
+        <div class="flex h-5 rounded-full overflow-hidden bg-surface-dim" style="width:${trackW}%">
+          <div style="width:${pct}%;background:${col}" class="h-full" title="${j.name} ${status} ${fmt(done)}/${j.total}m"></div>
+          <div style="flex:1 1 auto;background:${C_GRAY}" class="h-full"></div>
+        </div>
+      </div>`;
+    }).join("");
 
   // 공정별 누적
   document.getElementById("stage-totals").innerHTML = STAGES.map((nm,i)=>{
@@ -502,6 +532,13 @@ function drawRoute(){
     const bEnd=latlngAtM(TOTAL);
     if(bEnd) L.circleMarker(bEnd,{radius:4,color:C_NAVY,weight:2,fillColor:C_NAVY,fillOpacity:1}).addTo(routeLayer)
       .bindTooltip("종점 NO."+Math.round(TOTAL/CHAIN),{permanent:true,direction:"top",className:"chain-tick"});
+    // 맨홀 (활락=빨강, 접속=주황)
+    MANHOLES.forEach(mh=>{
+      const ll=latlngAtM(mh.pos); if(!ll) return;
+      const col = mh.type==="활락" ? "#ba1a1a" : "#FD7E14";
+      L.circleMarker(ll,{radius:6,color:"#fff",weight:2,fillColor:col,fillOpacity:1}).addTo(routeLayer)
+        .bindTooltip(mh.name,{permanent:true,direction:"bottom",className:"mh-tick "+(mh.type==="활락"?"mh-drop":"mh-conn")});
+    });
   }
   // 보정 클릭 점은 보정 중에만 표시(완료 후엔 깔끔하게 시점/종점만)
   if(calibrating) STATE.route.points.forEach((p,idx)=>{
@@ -582,10 +619,13 @@ function preparePrintMap(){
   if(!MAP){ const rv=document.getElementById("view-route"); if(rv){ rv.classList.add("active"); initMap(); } return; }
   _printPrevView=(document.querySelector(".view.active")||{}).id||"view-dashboard";
   document.getElementById("view-route").classList.add("active");
+  const el=document.getElementById("map-leaflet");
+  el.style.height="430px";                 // 인쇄 지도 높이에 맞춰 fit 계산
   MAP.invalidateSize();
-  if(STATE.route.points.length>=2) MAP.fitBounds(L.latLngBounds(routeLatLngs()).pad(0.05));
+  if(STATE.route.points.length>=2) MAP.fitBounds(L.latLngBounds(routeLatLngs()).pad(0.15));
 }
 function restoreAfterPrint(){
+  const el=document.getElementById("map-leaflet"); if(el) el.style.height="";
   if(_printPrevView){ showView(_printPrevView.replace("view-","")); _printPrevView=null; }
   if(MAP){ MAP.invalidateSize(); fitRoute(); }
 }

@@ -43,38 +43,46 @@
   .input-error{box-shadow:inset 0 0 0 2px #FD7E14;border-color:transparent;background-color:#fff7ed}
   @keyframes pulse-ring{0%{r:6;opacity:.9}70%{r:16;opacity:0}100%{r:16;opacity:0}}
   .head-pulse{animation:pulse-ring 1.8s ease-out infinite}
-  .chain-tick{font-family:'JetBrains Mono',monospace;font-size:9px;line-height:1;padding:1px 3px;background:#fff;color:#002a5c;border:1px solid #c3c6d2;border-radius:3px;box-shadow:none;font-weight:500}
+  .chain-tick{font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1;padding:2px 4px;background:#fff;color:#002a5c;border:1px solid #9aa0ae;border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:600}
   .chain-tick::before{display:none}
+  .mh-tick{font-size:11px;line-height:1;padding:2px 5px;border-radius:3px;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+  .mh-tick::before{display:none}
+  .mh-drop{background:#ba1a1a;color:#fff;border:1px solid #fff}
+  .mh-conn{background:#FD7E14;color:#fff;border:1px solid #fff}
   #print-title{display:none}
   @media print{
-    @page{size:A3 portrait;margin:7mm}
+    @page{size:A3 portrait;margin:14mm}
+    /* 배경색·바 시각화가 인쇄에 나오도록 강제 */
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
     html,body{background:#fff!important}
     nav,header,#mobile-bottom,#btn-print,.no-print,#lockgate{display:none!important}
     main{margin:0!important;padding:0!important;max-width:none!important}
     .view{display:none!important}
     #view-dashboard{display:block!important}
-    #view-route{display:block!important;margin-top:4mm}
+    #view-route{display:block!important;margin-top:8mm}
     #route-status{display:none!important}
     /* 인쇄 제목: '송전선로 공사 현황' 가운데 정렬, 기존 헤더 숨김 */
-    #print-title{display:block!important;text-align:center;font-size:20px;font-weight:600;margin:0 0 3mm}
-    #view-dashboard > div:first-of-type{display:none!important}   /* 화면용 헤더(전체 공정 대시보드+토글) 숨김 */
-    #view-route h2{font-size:14px!important;text-align:center}
-    /* 공통 압축 */
-    #view-dashboard,#view-route{font-size:10px}
-    h3{font-size:12px!important;margin:3px 0!important}
+    #print-title{display:block!important;text-align:center;font-size:24px;font-weight:600;margin:0 0 6mm}
+    #view-dashboard > div:first-of-type{display:none!important}
+    #view-route h2{font-size:16px!important;text-align:center;margin-bottom:3mm}
+    /* 적당한 여백·크기 */
+    #view-dashboard,#view-route{font-size:11px}
+    h3{font-size:13px!important;margin:5px 0!important}
     .shadow-sm{box-shadow:none!important}
-    #view-dashboard .rounded-2xl,#view-route .rounded-2xl{padding:6px 8px!important}
-    .mb-6,.mb-8{margin-bottom:5px!important}
-    #kpi-row{margin-bottom:5px!important;gap:6px!important}
-    #kpi-row .font-headline{font-size:17px!important}
-    #kpi-row .p-4{padding:5px 7px!important}
-    #section-bars>div{margin:2px 0!important}
-    #section-bars .h-5{height:11px!important}
-    #stage-totals>div{margin:1px 0!important}
-    #stage-totals .h-3\.5{height:8px!important}
+    #view-dashboard .rounded-2xl,#view-route .rounded-2xl{padding:10px 12px!important;border:1px solid #E9ECEF!important}
+    .mb-6,.mb-8{margin-bottom:8px!important}
+    #kpi-row{margin-bottom:8px!important;gap:8px!important}
+    #kpi-row .font-headline{font-size:18px!important}
+    #kpi-row .p-4{padding:7px 9px!important}
+    #section-bars>div{margin:4px 0!important}
+    #section-bars .h-5{height:13px!important}
+    #stage-totals>div{margin:3px 0!important}
+    #stage-totals .h-3\.5{height:9px!important}
     /* 노선도(지도+범례), 한 페이지에 맞게 */
-    #map-leaflet{height:110mm!important;width:100%!important}
-    #route-legend{margin:3px 0 4px!important}
+    #map-leaflet{height:105mm!important;width:100%!important}
+    #route-legend{margin:4px 0 5px!important}
+    .chain-tick{font-size:10px;padding:1px 3px}
+    .mh-tick{font-size:10px;padding:1px 4px}
     .leaflet-control-zoom,.leaflet-control-attribution{display:none!important}
   }
 </style>
@@ -304,5 +312,5 @@
   </section>
 
 </main>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body></html>
