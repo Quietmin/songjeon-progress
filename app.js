@@ -626,19 +626,36 @@ function setRouteToggle(){
   document.getElementById("route-color-region").className=`px-3 py-1.5 ${routeColorMode==="region"?"bg-primary text-white font-semibold":"text-on-surface-variant"}`; }
 
 /* 인쇄: 노선도를 공사 전체 노선에 맞춰(주변 잘라내고) 렌더 */
-let _printPrevView=null;
-function preparePrintMap(){
+let _printPrevView=null, printMode="report", _printPrepared=false;
+function doPreparePrint(){
   if(!MAP){ const rv=document.getElementById("view-route"); if(rv){ rv.classList.add("active"); initMap(); } return; }
   _printPrevView=(document.querySelector(".view.active")||{}).id||"view-dashboard";
   document.getElementById("view-route").classList.add("active");
   const el=document.getElementById("map-leaflet");
-  el.style.height="430px";                 // 인쇄 지도 높이에 맞춰 fit 계산
+  // 인쇄 지도 실제 크기에 맞춰 fit (보고서=세로 작게, 노선도=가로 크게)
+  el.style.height = (printMode==="route") ? "900px" : "300px";
+  if(printMode==="route") el.style.width = "100%";
   MAP.invalidateSize();
-  if(STATE.route.points.length>=2) MAP.fitBounds(L.latLngBounds(routeLatLngs()).pad(0.15));
+  if(STATE.route.points.length>=2) MAP.fitBounds(L.latLngBounds(routeLatLngs()).pad(printMode==="route"?0.06:0.10));
 }
+function preparePrintMap(){ if(!_printPrepared) doPreparePrint(); }   // Ctrl+P 직접 인쇄 대응
 function restoreAfterPrint(){
-  const el=document.getElementById("map-leaflet"); if(el) el.style.height="";
+  _printPrepared=false; printMode="report";
+  document.body.classList.remove("print-route-only");
+  const ps=document.getElementById("page-style"); if(ps) ps.remove();
+  const el=document.getElementById("map-leaflet"); if(el){ el.style.height=""; el.style.width=""; }
   if(_printPrevView){ showView(_printPrevView.replace("view-","")); _printPrevView=null; }
   if(MAP){ MAP.invalidateSize(); fitRoute(); }
+}
+/* 보고서 출력 (A3 세로: 대시보드+노선도) */
+function printReport(){ printMode="report"; _printPrepared=false; window.print(); }
+/* 노선도만 가로로 크게 출력 (A3 가로) */
+function printRouteOnly(){
+  printMode="route";
+  document.body.classList.add("print-route-only");
+  let st=document.getElementById("page-style"); if(!st){ st=document.createElement("style"); st.id="page-style"; document.head.appendChild(st); }
+  st.textContent="@media print{ @page{ size:A3 landscape; margin:8mm } }";
+  doPreparePrint(); _printPrepared=true;
+  setTimeout(()=>window.print(), 500);   // 타일 로딩 대기 후 인쇄
 }
 document.addEventListener("DOMContentLoaded", init);
