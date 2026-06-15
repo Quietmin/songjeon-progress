@@ -492,10 +492,16 @@ function drawRoute(){
     } else {
       SECTIONS.forEach(sec=> poly(sec.start,sec.end,REGION_COLORS[sec.region],0.85));
     }
-    // 시점/종점 라벨
-    const a=latlngAtM(0), b=latlngAtM(TOTAL);
-    if(a) L.circleMarker(a,{radius:5,color:C_NAVY,weight:2,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer).bindTooltip("시점 0m",{permanent:true,direction:"top",className:"route-tip"});
-    if(b) L.circleMarker(b,{radius:5,color:C_NAVY,weight:2,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer).bindTooltip(`종점 ${fmt(TOTAL)}m`,{permanent:true,direction:"top",className:"route-tip"});
+    // 체인 NO. 눈금 (10단위 = 200m 간격: NO.0, NO.10, NO.20 …)
+    for(let m=0; m<=TOTAL; m+=200){
+      const ll=latlngAtM(m); if(!ll) continue;
+      L.circleMarker(ll,{radius:3,color:C_NAVY,weight:1,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer)
+        .bindTooltip("NO."+Math.round(m/CHAIN),{permanent:true,direction:"top",className:"chain-tick"});
+    }
+    // 종점
+    const bEnd=latlngAtM(TOTAL);
+    if(bEnd) L.circleMarker(bEnd,{radius:4,color:C_NAVY,weight:2,fillColor:C_NAVY,fillOpacity:1}).addTo(routeLayer)
+      .bindTooltip("종점 NO."+Math.round(TOTAL/CHAIN),{permanent:true,direction:"top",className:"chain-tick"});
   }
   // 보정 클릭 점은 보정 중에만 표시(완료 후엔 깔끔하게 시점/종점만)
   if(calibrating) STATE.route.points.forEach((p,idx)=>{
