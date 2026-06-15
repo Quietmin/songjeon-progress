@@ -246,12 +246,24 @@ function renderDashboard(){
     const headPos = stageMaxEndIn(0, sec.start, sec.end);
     const headChain = headPos>0 ? chainLabel(headPos) : "-";
     const mixedTag = sec.mixed ? `<span class="text-[10px] text-outline ml-1">+압입</span>` : "";
+    // 구간 내 맨홀 마커
+    const mhs = MANHOLES.filter(m=>m.pos>=sec.start && m.pos<sec.end);
+    const mhMarkers = mhs.map(m=>{
+      const left=(m.pos-sec.start)/barLen*100, col=m.type==="활락"?"#ba1a1a":"#FD7E14";
+      const short=(m.type==="활락"?"활락":"접속")+m.name.slice(m.name.indexOf("#"));
+      return `<div style="position:absolute;left:${left}%;bottom:0;transform:translateX(-50%);text-align:center" title="${m.name} (${chainLabel(m.pos)})">
+        <span style="display:inline-block;font-size:8px;font-weight:700;color:#fff;background:${col};border-radius:3px;padding:0 3px;white-space:nowrap">${short}</span>
+        <span style="display:block;width:1px;height:4px;background:${col};margin:1px auto 0"></span></div>`;
+    }).join("");
     return `<div>
       <div class="flex items-center justify-between mb-1">
         <span class="text-sm font-semibold text-on-surface">${sec.name} <span class="font-mono text-[11px] text-outline">${sec.region} · ${fmt(sec.openLen)}m</span>${mixedTag}</span>
         <span class="font-mono text-[12px] text-primary font-semibold">${pct1(comp)}% <span class="text-outline">· 선단 ${headChain}</span></span>
       </div>
-      <div class="flex h-5 rounded-full overflow-hidden bg-surface-dim" style="width:${trackW}%">${segs}</div>
+      <div style="width:${trackW}%">
+        <div style="position:relative;height:${mhs.length?16:0}px">${mhMarkers}</div>
+        <div class="flex h-5 rounded-full overflow-hidden bg-surface-dim" style="width:100%">${segs}</div>
+      </div>
     </div>`;
   }).join("")
   + `<div class="pt-2 mt-1 border-t border-border-subtle text-[11px] text-on-surface-variant">6구간 비개착(압입) — 미착수 / 공사중 / 완료</div>`
@@ -526,18 +538,18 @@ function drawRoute(){
     for(let m=0; m<=TOTAL; m+=200){
       const ll=latlngAtM(m); if(!ll) continue;
       L.circleMarker(ll,{radius:3,color:C_NAVY,weight:1,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer)
-        .bindTooltip("NO."+Math.round(m/CHAIN),{permanent:true,direction:"top",className:"chain-tick"});
+        .bindTooltip("NO."+Math.round(m/CHAIN),{permanent:true,direction:"top",offset:[0,-9],className:"chain-tick"});
     }
     // 종점
     const bEnd=latlngAtM(TOTAL);
     if(bEnd) L.circleMarker(bEnd,{radius:4,color:C_NAVY,weight:2,fillColor:C_NAVY,fillOpacity:1}).addTo(routeLayer)
-      .bindTooltip("종점 NO."+Math.round(TOTAL/CHAIN),{permanent:true,direction:"top",className:"chain-tick"});
-    // 맨홀 (활락=빨강, 접속=주황)
+      .bindTooltip("종점 NO."+Math.round(TOTAL/CHAIN),{permanent:true,direction:"top",offset:[0,-9],className:"chain-tick"});
+    // 맨홀 (활락=빨강, 접속=주황) — 라벨을 선 아래로 띄움
     MANHOLES.forEach(mh=>{
       const ll=latlngAtM(mh.pos); if(!ll) return;
       const col = mh.type==="활락" ? "#ba1a1a" : "#FD7E14";
       L.circleMarker(ll,{radius:6,color:"#fff",weight:2,fillColor:col,fillOpacity:1}).addTo(routeLayer)
-        .bindTooltip(mh.name,{permanent:true,direction:"bottom",className:"mh-tick "+(mh.type==="활락"?"mh-drop":"mh-conn")});
+        .bindTooltip(mh.name,{permanent:true,direction:"bottom",offset:[0,12],className:"mh-tick "+(mh.type==="활락"?"mh-drop":"mh-conn")});
     });
   }
   // 보정 클릭 점은 보정 중에만 표시(완료 후엔 깔끔하게 시점/종점만)

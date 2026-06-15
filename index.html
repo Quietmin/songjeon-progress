@@ -51,7 +51,7 @@
   .mh-conn{background:#FD7E14;color:#fff;border:1px solid #fff}
   #print-title{display:none}
   @media print{
-    @page{size:A3 portrait;margin:14mm}
+    @page{size:A3 portrait;margin:11mm}
     /* 배경색·바 시각화가 인쇄에 나오도록 강제 */
     *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
     html,body{background:#fff!important}
@@ -59,30 +59,30 @@
     main{margin:0!important;padding:0!important;max-width:none!important}
     .view{display:none!important}
     #view-dashboard{display:block!important}
-    #view-route{display:block!important;margin-top:8mm}
+    #view-route{display:block!important;margin-top:5mm;break-inside:avoid}
     #route-status{display:none!important}
     /* 인쇄 제목: '송전선로 공사 현황' 가운데 정렬, 기존 헤더 숨김 */
-    #print-title{display:block!important;text-align:center;font-size:24px;font-weight:600;margin:0 0 6mm}
+    #print-title{display:block!important;text-align:center;font-size:22px;font-weight:600;margin:0 0 4mm}
     #view-dashboard > div:first-of-type{display:none!important}
-    #view-route h2{font-size:16px!important;text-align:center;margin-bottom:3mm}
-    /* 적당한 여백·크기 */
-    #view-dashboard,#view-route{font-size:11px}
-    h3{font-size:13px!important;margin:5px 0!important}
+    #view-route h2{font-size:15px!important;text-align:center;margin-bottom:2mm}
+    /* 크기·여백 */
+    #view-dashboard,#view-route{font-size:10px}
+    h3{font-size:12px!important;margin:4px 0!important}
     .shadow-sm{box-shadow:none!important}
-    #view-dashboard .rounded-2xl,#view-route .rounded-2xl{padding:10px 12px!important;border:1px solid #E9ECEF!important}
-    .mb-6,.mb-8{margin-bottom:8px!important}
-    #kpi-row{margin-bottom:8px!important;gap:8px!important}
-    #kpi-row .font-headline{font-size:18px!important}
-    #kpi-row .p-4{padding:7px 9px!important}
-    #section-bars>div{margin:4px 0!important}
-    #section-bars .h-5{height:13px!important}
-    #stage-totals>div{margin:3px 0!important}
-    #stage-totals .h-3\.5{height:9px!important}
+    #view-dashboard .rounded-2xl,#view-route .rounded-2xl{padding:8px 10px!important;border:1px solid #E9ECEF!important}
+    .mb-6,.mb-8{margin-bottom:6px!important}
+    #kpi-row{margin-bottom:6px!important;gap:6px!important}
+    #kpi-row .font-headline{font-size:17px!important}
+    #kpi-row .p-4{padding:5px 7px!important}
+    #section-bars>div{margin:2px 0!important}
+    #section-bars .h-5{height:11px!important}
+    #stage-totals>div{margin:1px 0!important}
+    #stage-totals .h-3\.5{height:8px!important}
     /* 노선도(지도+범례), 한 페이지에 맞게 */
-    #map-leaflet{height:105mm!important;width:100%!important}
-    #route-legend{margin:4px 0 5px!important}
-    .chain-tick{font-size:10px;padding:1px 3px}
-    .mh-tick{font-size:10px;padding:1px 4px}
+    #map-leaflet{height:82mm!important;width:100%!important}
+    #route-legend{margin:3px 0 4px!important}
+    .chain-tick{font-size:9px;padding:1px 2px}
+    .mh-tick{font-size:9px;padding:1px 3px}
     .leaflet-control-zoom,.leaflet-control-attribution{display:none!important}
   }
 </style>
@@ -312,5 +312,5 @@
   </section>
 
 </main>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body></html>
