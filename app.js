@@ -36,12 +36,65 @@ let routeColorMode = "stage";
 let calibrating = false;
 
 function blankState(){ return { entries:[], jacking:[], route:{ image:null, points:[] } }; }
+function normalizeState(s){ s=s||{}; return {
+  entries: Array.isArray(s.entries)?s.entries:[],
+  jacking: Array.isArray(s.jacking)?s.jacking:[],
+  route: (s.route && Array.isArray(s.route.points))? s.route : {image:null,points:[]}
+}; }
 function loadState(){
-  try { const s = JSON.parse(localStorage.getItem(LS_KEY)); if(s && s.entries) { s.route = s.route||{image:null,points:[]}; s.jacking = s.jacking||[]; return s; } }
+  try { const s = JSON.parse(localStorage.getItem(LS_KEY)); if(s && s.entries) return normalizeState(s); }
   catch(e){}
   return blankState();
 }
-function saveState(){ localStorage.setItem(LS_KEY, JSON.stringify(STATE)); }
+function saveLocal(){ localStorage.setItem(LS_KEY, JSON.stringify(STATE)); }
+function saveState(){ saveLocal(); cloudSave(); }
+
+/* ===== 클라우드 동기화 (Supabase) ===== */
+const SUPABASE_URL = "https://vitwrcnpobbalnrpjqlu.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpdHdyY25wb2JiYWxucnBqcWx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0ODY1NTEsImV4cCI6MjA5NzA2MjU1MX0.4ikz1bkTkMttDjacs9FIThept1uzfX1Tn9UXp0byJ3w";
+let SB = null, CLOUD_OK = false, _saveTimer = null, _lastSync = "";
+try { if(window.supabase && SUPABASE_URL) SB = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {realtime:{params:{eventsPerSecond:2}}}); } catch(e){ console.warn("supabase init", e); }
+
+function cloudSave(){
+  if(!SB) return;
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async()=>{
+    try{
+      _lastSync = JSON.stringify(STATE);
+      const { error } = await SB.from("songjeon_state").upsert({ id:1, data:STATE, updated_at:new Date().toISOString() });
+      if(error) console.warn("cloudSave", error);
+    }catch(e){ console.warn("cloudSave", e); }
+  }, 700);
+}
+async function cloudInit(){
+  if(!SB) { renderSettings(); return; }
+  try{
+    const { data, error } = await SB.from("songjeon_state").select("data").eq("id",1).maybeSingle();
+    if(error){ console.warn("cloudInit", error); renderSettings(); return; }
+    CLOUD_OK = true;
+    if(data && data.data && Array.isArray(data.data.entries)){
+      STATE = normalizeState(data.data); _lastSync = JSON.stringify(STATE);
+      saveLocal(); renderAll();
+    } else {
+      cloudSave();  // 클라우드가 비어있으면 현재 로컬 데이터로 초기화
+    }
+    cloudSubscribe();
+    renderSettings();
+  }catch(e){ console.warn("cloudInit", e); renderSettings(); }
+}
+function cloudSubscribe(){
+  if(!SB) return;
+  SB.channel("songjeon_state_ch")
+    .on("postgres_changes", { event:"*", schema:"public", table:"songjeon_state", filter:"id=eq.1" }, payload=>{
+      const incoming = payload.new && payload.new.data;
+      if(!incoming || !Array.isArray(incoming.entries)) return;
+      const js = JSON.stringify(normalizeState(incoming));
+      if(js === JSON.stringify(STATE) || js === _lastSync) return;   // 내 변경 에코/동일 무시
+      STATE = normalizeState(incoming); _lastSync = js;
+      saveLocal(); renderAll(); if(MAP) drawRoute();
+      toast("다른 기기의 변경사항을 불러왔습니다");
+    }).subscribe();
+}
 
 /* ===== 위치/구간 헬퍼 ===== */
 const posOf = (no, m) => (Number(no)||0)*CHAIN + (Number(m)||0);
@@ -319,8 +372,9 @@ function renderSettings(){
       </tbody></table>
     <p class="text-[11px] text-on-surface-variant mt-3">6구간: 개착 22m만 7단계 적용 · 강관압입 48m / 지향성압입 179m 별도.</p>`;
   const bytes = new Blob([localStorage.getItem(LS_KEY)||""]).size;
-  document.getElementById("storage-info").textContent =
-    `저장 위치: 이 브라우저(localStorage) · 사용량 ${(bytes/1024).toFixed(1)} KB · 기록 ${STATE.entries.length+STATE.jacking.length}건`;
+  const cloud = !SB ? "클라우드 미연결(로컬 전용)" : (CLOUD_OK ? "☁ 클라우드 동기화 중 — 여러 기기 공유" : "클라우드 연결 시도 중…");
+  document.getElementById("storage-info").innerHTML =
+    `<span class="${CLOUD_OK?'text-secondary font-semibold':''}">${cloud}</span> · 로컬 캐시 ${(bytes/1024).toFixed(1)} KB · 기록 ${STATE.entries.length+STATE.jacking.length}건`;
 }
 function renderEntryLog(){
   const all = STATE.entries.map(e=>({...e, type:"open"})).concat(STATE.jacking.map(e=>({...e, type:"jack"})))
@@ -462,6 +516,7 @@ function init(){
   buildInputForm();
   document.getElementById("input-date").value=todayStr();
   renderAll();
+  cloudInit();   // 클라우드에서 최신 데이터 로드 + 실시간 구독
 
   document.querySelectorAll(".nav-link").forEach(a=>a.addEventListener("click", e=>{ e.preventDefault(); showView(a.dataset.view); }));
   document.getElementById("btn-save").addEventListener("click", saveEntries);
