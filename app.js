@@ -29,7 +29,7 @@ const MANHOLES = [
   { no:21, off:12, name:"접속맨홀#1", type:"접속" },
   { no:46, off:12, name:"접속맨홀#2", type:"접속" },
   { no:72, off:12, name:"접속맨홀#3", type:"접속" },
-  { no:87, off:2,  name:"접속맨홀#4", type:"접속" },
+  { no:9,  off:7,  name:"접속맨홀#4", type:"접속" },
   { no:123,off:2,  name:"접속맨홀#5", type:"접속" },
   { no:132,off:0,  name:"활락맨홀#2", type:"활락" },
   { no:146,off:12, name:"접속맨홀#6", type:"접속" },
@@ -636,7 +636,7 @@ function doPreparePrint(){
   el.style.height = (printMode==="route") ? "900px" : "300px";
   if(printMode==="route") el.style.width = "100%";
   MAP.invalidateSize();
-  if(STATE.route.points.length>=2) MAP.fitBounds(L.latLngBounds(routeLatLngs()).pad(printMode==="route"?0.06:0.10));
+  if(STATE.route.points.length>=2) MAP.fitBounds(L.latLngBounds(routeLatLngs()).pad(printMode==="route"?0.12:0.25));
 }
 function preparePrintMap(){ if(!_printPrepared) doPreparePrint(); }   // Ctrl+P 직접 인쇄 대응
 function restoreAfterPrint(){
