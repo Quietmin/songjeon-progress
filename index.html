@@ -168,9 +168,13 @@
     <li><a class="nav-link flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all" data-view="route" href="#"><span class="material-symbols-outlined">map</span><span>노선도</span></a></li>
     <li><a class="nav-link flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all" data-view="settings" href="#"><span class="material-symbols-outlined">settings</span><span>설정</span></a></li>
   </ul>
-  <div class="mt-auto">
+  <div class="mt-auto space-y-2">
+    <div id="role-label" class="text-[11px] text-center text-on-surface-variant"></div>
     <button id="btn-print" onclick="printReport()" class="w-full py-2 border border-outline rounded-lg text-primary hover:bg-surface-container-high transition-colors font-mono text-[12px] flex items-center justify-center gap-2">
       <span class="material-symbols-outlined text-sm">print</span> 보고서 출력 (A3)
+    </button>
+    <button onclick="logout()" class="w-full py-2 border border-border-subtle rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors font-mono text-[12px] flex items-center justify-center gap-2">
+      <span class="material-symbols-outlined text-sm">logout</span> 로그아웃
     </button>
   </div>
 </nav>
@@ -178,7 +182,10 @@
 <!-- Mobile Top -->
 <header class="md:hidden flex justify-between items-center w-full px-4 py-4 bg-surface shadow-sm sticky top-0 z-50">
   <h1 class="font-headline text-xl font-bold text-primary">송전선로 공사 현황</h1>
-  <button onclick="printReport()" class="text-primary"><span class="material-symbols-outlined">print</span></button>
+  <div class="flex items-center gap-4 text-primary">
+    <button onclick="printReport()"><span class="material-symbols-outlined">print</span></button>
+    <button onclick="logout()"><span class="material-symbols-outlined">logout</span></button>
+  </div>
 </header>
 
 <!-- Mobile Bottom -->
@@ -325,5 +332,5 @@
   </section>
 
 </main>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 </body></html>
