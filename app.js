@@ -3,28 +3,23 @@
 
 /* ===== 기준 데이터 ===== */
 const CHAIN = 20; // 체인 NO. 간격(m)
-const TOTAL = 3448; // 전체 연장(m)
-const OPENCUT_TOTAL = 3221; // 개착식 7단계 적용 총 연장(m)
-
-const SECTIONS = [
-  { id:1, name:"1구간", region:"수원", start:0,    end:320,  openLen:320 },
-  { id:2, name:"2구간", region:"수원", start:320,  end:740,  openLen:420 },
-  { id:3, name:"3구간", region:"수원", start:740,  end:1620, openLen:880 },
-  { id:4, name:"4구간", region:"수원", start:1620, end:2320, openLen:700 },
-  { id:5, name:"5구간", region:"용인", start:2320, end:2983, openLen:663 },
-  { id:6, name:"6구간", region:"용인", start:2983, end:3232, openLen:22, mixed:true },
-  { id:7, name:"7구간", region:"용인", start:3232, end:3448, openLen:216 },
-];
-
 const STAGES = ["터파기","ELP관 매설","차폐판 설치","되메우기","표층 메우기","가포장","본포장"];
-const JACKING = [
-  { key:"steel",        name:"강관압입",   total:48  },
-  { key:"directional",  name:"지향성압입", total:179 },
-];
-const JACKING_TOTAL = 227;
 
-/* 맨홀 (체인 NO.+m 위치) */
-const MANHOLES = [
+/* 기본값 — 설정에서 수정 시 STATE.config로 덮어씀 */
+const DEFAULT_SECTIONS = [
+  { name:"1구간", region:"수원", openLen:320 },
+  { name:"2구간", region:"수원", openLen:420 },
+  { name:"3구간", region:"수원", openLen:880 },
+  { name:"4구간", region:"수원", openLen:700 },
+  { name:"5구간", region:"용인", openLen:663 },
+  { name:"6구간", region:"용인", openLen:22, mixed:true },
+  { name:"7구간", region:"용인", openLen:216 },
+];
+const DEFAULT_JACKING = [
+  { key:"steel",       name:"강관압입",   total:48  },
+  { key:"directional", name:"지향성압입", total:179 },
+];
+const DEFAULT_MANHOLES = [
   { no:6,  off:19, name:"활락맨홀#1", type:"활락" },
   { no:21, off:12, name:"접속맨홀#1", type:"접속" },
   { no:46, off:12, name:"접속맨홀#2", type:"접속" },
@@ -34,7 +29,28 @@ const MANHOLES = [
   { no:132,off:0,  name:"활락맨홀#2", type:"활락" },
   { no:146,off:12, name:"접속맨홀#6", type:"접속" },
   { no:162,off:2,  name:"접속맨홀#7", type:"접속" },
-].map(m=>({ ...m, pos:m.no*20+m.off }));
+];
+
+/* 적용된 현재값 (applyConfig로 STATE.config 반영) */
+let SECTIONS=[], JACKING=[], MANHOLES=[], TOTAL=0, OPENCUT_TOTAL=0, JACKING_TOTAL=0;
+function applyConfig(){
+  const cfg = (typeof STATE!=="undefined" && STATE && STATE.config) || {};
+  JACKING = (Array.isArray(cfg.jacking)&&cfg.jacking.length ? cfg.jacking : DEFAULT_JACKING)
+    .map(j=>({ key:j.key, name:j.name, total:Math.max(0,Number(j.total)||0) }));
+  JACKING_TOTAL = JACKING.reduce((t,j)=>t+j.total,0);
+  const secCfg = Array.isArray(cfg.sections)&&cfg.sections.length ? cfg.sections : DEFAULT_SECTIONS;
+  let cursor=0;
+  SECTIONS = secCfg.map((s,i)=>{
+    const openLen=Math.max(0,Number(s.openLen)||0);
+    const geo = openLen + (s.mixed ? JACKING_TOTAL : 0);
+    const sec={ id:i+1, name:s.name||`${i+1}구간`, region:s.region||"수원", openLen, mixed:!!s.mixed, start:cursor, end:cursor+geo };
+    cursor+=geo; return sec;
+  });
+  TOTAL = cursor;
+  OPENCUT_TOTAL = SECTIONS.reduce((t,s)=>t+s.openLen,0) || 1;
+  const mhCfg = Array.isArray(cfg.manholes)&&cfg.manholes.length ? cfg.manholes : DEFAULT_MANHOLES;
+  MANHOLES = mhCfg.map(m=>({ no:Number(m.no)||0, off:Number(m.off)||0, name:m.name||"맨홀", type:m.type||"접속", pos:(Number(m.no)||0)*CHAIN+(Number(m.off)||0) }));
+}
 
 /* 단계별 색: 색상이 다르면서 진행할수록 진해지는 순차 팔레트(viridis 계열, 인쇄·흑백 구분 양호) */
 const STAGE_COLORS = ["#FDE725","#90D743","#35B779","#21918C","#31688E","#443983","#440154"];
@@ -47,12 +63,15 @@ let STATE = loadState();
 let scaleMode = "ratio";  // ratio | real
 let routeColorMode = "stage";
 let calibrating = false;
+const ROLE = sessionStorage.getItem("songjeon_role") || "viewer";  // admin | viewer
+applyConfig();
 
-function blankState(){ return { entries:[], jacking:[], route:{ image:null, points:[] } }; }
+function blankState(){ return { entries:[], jacking:[], route:{ image:null, points:[] }, config:null }; }
 function normalizeState(s){ s=s||{}; return {
   entries: Array.isArray(s.entries)?s.entries:[],
   jacking: Array.isArray(s.jacking)?s.jacking:[],
-  route: (s.route && Array.isArray(s.route.points))? s.route : {image:null,points:[]}
+  route: (s.route && Array.isArray(s.route.points))? s.route : {image:null,points:[]},
+  config: (s.config && typeof s.config==="object") ? s.config : null
 }; }
 function loadState(){
   try { const s = JSON.parse(localStorage.getItem(LS_KEY)); if(s && s.entries) return normalizeState(s); }
@@ -203,7 +222,7 @@ const pct1 = n => (Math.round(n*10)/10).toFixed(1);
 /* ===================================================================== */
 /* 렌더링                                                                 */
 /* ===================================================================== */
-function renderAll(){ renderDashboard(); renderSettings(); renderEntryLog(); drawRoute(); }
+function renderAll(){ applyConfig(); renderDashboard(); renderSettings(); renderEntryLog(); drawRoute(); }
 
 /* ---------- 대시보드 ---------- */
 function renderDashboard(){
@@ -422,18 +441,28 @@ function saveEntries(){
 
 /* ---------- 설정 ---------- */
 function renderSettings(){
+  const secRows = SECTIONS.map((s,i)=>`<tr class="border-b border-border-subtle/60">
+      <td class="py-1"><input data-cfg="sec-name-${i}" value="${s.name}" class="w-20 border border-border-subtle rounded p-1 text-xs"></td>
+      <td class="text-[11px]">${s.region}${s.mixed?' <span class="text-[10px] text-outline">혼합</span>':''}</td>
+      <td class="text-right whitespace-nowrap"><input data-cfg="sec-len-${i}" type="number" value="${s.openLen}" class="w-16 border border-border-subtle rounded p-1 text-xs text-right">m</td>
+      <td class="font-mono text-[11px] text-outline">${sectionChainRange(s)}</td></tr>`).join("");
+  const jackInputs = JACKING.map(j=>`<div class="flex items-center gap-2">
+      <span class="text-[12px] w-20">${j.name}</span>
+      <input data-cfg="jack-${j.key}" type="number" value="${j.total}" class="w-20 border border-border-subtle rounded p-1 text-xs text-right"><span class="text-[11px] text-outline">m</span></div>`).join("");
+  const mhRows = MANHOLES.map(m=>mhRowHTML(m)).join("");
   document.getElementById("settings-sections").innerHTML = `
-    <table class="w-full text-left">
-      <thead><tr class="text-[11px] text-outline border-b border-border-subtle">
-        <th class="py-1">구간</th><th>지역</th><th class="text-right">연장</th><th>체인 NO.</th><th class="text-right">진행</th></tr></thead>
-      <tbody>${SECTIONS.map(s=>`<tr class="border-b border-border-subtle/60">
-        <td class="py-1.5 font-semibold">${s.name}${s.mixed?' <span class="text-[10px] text-outline">혼합</span>':''}</td>
-        <td>${s.region}</td>
-        <td class="text-right font-mono">${fmt(s.openLen)}m</td>
-        <td class="font-mono text-[11px]">${sectionChainRange(s)}</td>
-        <td class="text-right font-mono text-primary">${pct1(sectionComposite(s))}%</td></tr>`).join("")}
-      </tbody></table>
-    <p class="text-[11px] text-on-surface-variant mt-3">6구간: 개착 22m만 7단계 적용 · 강관압입 48m / 지향성압입 179m 별도.</p>`;
+    <table class="w-full text-left mb-2">
+      <thead><tr class="text-[11px] text-outline border-b border-border-subtle"><th class="py-1">구간명</th><th>지역</th><th class="text-right">연장(개착)</th><th>체인 NO.</th></tr></thead>
+      <tbody>${secRows}</tbody></table>
+    <div class="mb-3"><div class="text-[12px] font-semibold mb-1">6구간 압입(비개착) 연장</div><div class="flex flex-col gap-1">${jackInputs}</div></div>
+    <div class="mb-2"><div class="flex items-center justify-between mb-1"><span class="text-[12px] font-semibold">맨홀</span>
+      <button onclick="addManholeRow()" class="text-[12px] text-primary border border-border-subtle rounded px-2 py-0.5">+ 맨홀 추가</button></div>
+      <div id="cfg-manholes">${mhRows}</div></div>
+    <div class="flex gap-2 mt-3">
+      <button onclick="saveConfig()" class="bg-primary text-white px-4 py-2 rounded-lg text-[13px] font-semibold">설정 저장</button>
+      <button onclick="resetConfig()" class="border border-border-subtle px-4 py-2 rounded-lg text-[13px]">기본값 복원</button>
+    </div>
+    <p class="text-[11px] text-on-surface-variant mt-2">연장 수정 시 체인 NO.·전체 거리(${fmt(TOTAL)}m)가 자동 재계산됩니다. 저장하면 모든 기기에 공유됩니다.</p>`;
   const bytes = new Blob([localStorage.getItem(LS_KEY)||""]).size;
   const cloud = !SB ? "클라우드 미연결(로컬 전용)" : (CLOUD_OK ? "☁ 클라우드 동기화 중 — 여러 기기 공유" : "클라우드 연결 시도 중…");
   document.getElementById("storage-info").innerHTML =
@@ -457,6 +486,47 @@ window.delEntry = (type,id)=>{
   else STATE.jacking = STATE.jacking.filter(e=>String(e.id)!==String(id));
   saveState(); renderAll();
 };
+
+/* ---------- 설정 편집 (구간·압입·맨홀) ---------- */
+function mhRowHTML(m){ m=m||{no:"",off:"",name:"",type:"접속"};
+  return `<div class="mh-row flex items-center gap-1 mb-1">
+    <span class="text-[10px] text-outline">NO.</span>
+    <input data-mh="no" type="number" value="${m.no}" class="w-12 border border-border-subtle rounded p-1 text-xs">
+    <span class="text-[10px] text-outline">+</span>
+    <input data-mh="off" type="number" value="${m.off}" class="w-10 border border-border-subtle rounded p-1 text-xs">
+    <input data-mh="name" value="${m.name}" placeholder="이름" class="flex-1 border border-border-subtle rounded p-1 text-xs">
+    <select data-mh="type" class="border border-border-subtle rounded p-1 text-xs"><option ${m.type==="접속"?"selected":""}>접속</option><option ${m.type==="활락"?"selected":""}>활락</option></select>
+    <button onclick="delManholeRow(this)" class="text-error text-sm px-1" title="삭제">✕</button></div>`;
+}
+window.addManholeRow = ()=>{ const c=document.getElementById("cfg-manholes"); if(c) c.insertAdjacentHTML("beforeend", mhRowHTML()); };
+window.delManholeRow = (btn)=>{ const r=btn.closest(".mh-row"); if(r) r.remove(); };
+window.saveConfig = ()=>{
+  const sections = SECTIONS.map((s,i)=>({
+    name:(document.querySelector(`[data-cfg="sec-name-${i}"]`)||{}).value||s.name,
+    region:s.region, mixed:s.mixed,
+    openLen:Math.max(0, Number((document.querySelector(`[data-cfg="sec-len-${i}"]`)||{}).value)||0)
+  }));
+  const jacking = JACKING.map(j=>({ key:j.key, name:j.name,
+    total:Math.max(0, Number((document.querySelector(`[data-cfg="jack-${j.key}"]`)||{}).value)||0) }));
+  const manholes = Array.from(document.querySelectorAll("#cfg-manholes .mh-row")).map(r=>({
+    no:Number(r.querySelector('[data-mh="no"]').value)||0,
+    off:Number(r.querySelector('[data-mh="off"]').value)||0,
+    name:r.querySelector('[data-mh="name"]').value||"맨홀",
+    type:r.querySelector('[data-mh="type"]').value||"접속"
+  }));
+  STATE.config = { sections, jacking, manholes };
+  applyConfig(); saveState(); renderAll(); toast("설정 저장 — 모든 기기에 반영됩니다");
+};
+window.resetConfig = ()=>{ if(!confirm("구간·압입·맨홀 설정을 기본값으로 되돌립니다. 계속할까요?")) return;
+  STATE.config=null; applyConfig(); saveState(); renderAll(); toast("기본값으로 복원"); };
+
+/* 역할 기반 접근: viewer는 입력/설정 숨김 */
+function applyRole(){
+  if(ROLE==="admin") return;
+  document.querySelectorAll('.nav-link[data-view="input"], .nav-link[data-view="settings"]').forEach(a=>{
+    const li=a.closest("li"); if(li) li.style.display="none"; else a.style.display="none";
+  });
+}
 
 /* ---------- 백업 ---------- */
 function exportJSON(){
@@ -581,6 +651,7 @@ function toast(msg, err){ const t=document.createElement("div");
 
 /* ===== 네비게이션 ===== */
 function showView(v){
+  if(ROLE!=="admin" && (v==="input"||v==="settings")) v="dashboard";   // 조회자는 입력/설정 차단
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active", s.id==="view-"+v));
   document.querySelectorAll(".nav-link").forEach(a=>a.classList.toggle("active", a.dataset.view===v));
   if(v==="route") setTimeout(initMap,50);
@@ -591,6 +662,7 @@ function showView(v){
 function init(){
   buildInputForm();
   document.getElementById("input-date").value=todayStr();
+  applyRole();   // 조회자/관리자 권한 적용 (입력·설정 숨김)
   renderAll();
   cloudInit();   // 클라우드에서 최신 데이터 로드 + 실시간 구독
 
