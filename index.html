@@ -147,7 +147,7 @@
     var h=await sha256((inp.value||'').trim());
     var role = h===HASH_ADMIN ? 'admin' : (h===HASH_VIEW ? 'viewer' : null);
     if(role){ sessionStorage.setItem('songjeon_unlock','1'); sessionStorage.setItem('songjeon_role',role);
-      document.documentElement.style.overflow=''; gate.remove(); }
+      location.reload(); }   // 역할이 앱 전체에 반영되도록 새로고침
     else { err.textContent='비밀번호가 올바르지 않습니다'; inp.value=''; inp.focus(); }
   }
   btn.addEventListener('click', tryUnlock);
@@ -332,5 +332,5 @@
   </section>
 
 </main>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=15"></script>
 </body></html>
