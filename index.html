@@ -64,7 +64,10 @@
     /* 인쇄 제목: '송전선로 공사 현황' 가운데 정렬, 기존 헤더 숨김 */
     #print-title{display:block!important;text-align:center;font-size:22px;font-weight:600;margin:0 0 4mm}
     #view-dashboard > div:first-of-type{display:none!important}
-    #view-route h2{font-size:15px!important;text-align:center;margin-bottom:2mm}
+    #view-route > div:first-of-type{display:block!important;text-align:center;margin-bottom:3mm}
+    #view-route h2{font-size:15px!important;text-align:center;margin:0!important}
+    #route-subtitle{display:none!important}
+    #route-legend{justify-content:flex-end!important}
     /* 크기·여백 */
     #view-dashboard,#view-route{font-size:10px}
     h3{font-size:12px!important;margin:4px 0!important}
@@ -88,8 +91,8 @@
     body.print-route-only #view-dashboard{display:none!important}
     body.print-route-only #view-route{display:block!important;margin:0!important}
     body.print-route-only #view-route .rounded-2xl{border:none!important;padding:0!important;box-shadow:none!important}
-    body.print-route-only #view-route h2{font-size:18px!important;margin-bottom:3mm}
-    body.print-route-only #route-legend{margin:2mm 0 3mm!important;justify-content:center;font-size:11px}
+    body.print-route-only #view-route h2{font-size:20px!important;margin:0 0 3mm!important;text-align:center}
+    body.print-route-only #route-legend{margin:2mm 0 3mm!important;justify-content:flex-end;font-size:12px}
     body.print-route-only #map-leaflet{height:250mm!important}
     body.print-route-only .chain-tick{font-size:11px;padding:2px 4px}
     body.print-route-only .mh-tick{font-size:11px;padding:2px 5px}
@@ -280,7 +283,7 @@
     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-2">
       <div>
         <h2 class="font-headline text-3xl font-semibold text-kpi-navy">노선도 현황</h2>
-        <p class="font-mono text-[12px] text-on-surface-variant mt-1">지도 이미지를 올리고 노선을 따라 점을 찍어 보정하세요. (시점 0m → 종점 3,448m)</p>
+        <p id="route-subtitle" class="font-mono text-[12px] text-on-surface-variant mt-1">노선을 따라 점을 찍어 보정하세요. (시점 0m → 종점 3,448m)</p>
       </div>
       <div class="flex items-center gap-2 no-print">
         <div class="inline-flex rounded-full border border-border-subtle overflow-hidden text-[12px]">
@@ -332,5 +335,5 @@
   </section>
 
 </main>
-<script src="app.js?v=15"></script>
+<script src="app.js?v=17"></script>
 </body></html>

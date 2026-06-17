@@ -265,6 +265,10 @@ function renderDashboard(){
     const headPos = stageMaxEndIn(0, sec.start, sec.end);
     const headChain = headPos>0 ? chainLabel(headPos) : "-";
     const mixedTag = sec.mixed ? `<span class="text-[10px] text-outline ml-1">+압입</span>` : "";
+    // 현재 진행 공정 = 진행 있는 가장 앞선 단계, 그 단계의 구간 내 진행 m
+    let curStage=-1; for(let s=0;s<7;s++){ if(stageDoneInSection(s,sec)>0.01) curStage=s; }
+    const curLabel = curStage<0 ? "미착수"
+      : `${STAGES[curStage]} ${fmt(stageDoneInSection(curStage,sec))}m / ${fmt(sec.openLen)}m`;
     // 구간 내 맨홀 마커
     const mhs = MANHOLES.filter(m=>m.pos>=sec.start && m.pos<sec.end);
     const mhMarkers = mhs.map(m=>{
@@ -276,7 +280,8 @@ function renderDashboard(){
     }).join("");
     return `<div>
       <div class="flex items-center justify-between mb-1">
-        <span class="text-sm font-semibold text-on-surface">${sec.name} <span class="font-mono text-[11px] text-outline">${sec.region} · ${fmt(sec.openLen)}m</span>${mixedTag}</span>
+        <span class="text-sm font-semibold text-on-surface">${sec.name} <span class="font-mono text-[11px] text-outline">${sec.region} · ${fmt(sec.openLen)}m</span>${mixedTag}
+          <span class="font-mono text-[11px] text-on-surface-variant ml-1">· ${curLabel}</span></span>
         <span class="font-mono text-[12px] text-primary font-semibold">${pct1(comp)}% <span class="text-outline">· 선단 ${headChain}</span></span>
       </div>
       <div style="width:${trackW}%">
@@ -723,8 +728,8 @@ function restoreAfterPrint(){
   if(_printPrevView){ showView(_printPrevView.replace("view-","")); _printPrevView=null; }
   if(MAP){ MAP.invalidateSize(); fitRoute(); }
 }
-/* 보고서 출력 (A3 세로: 대시보드+노선도) */
-function printReport(){ printMode="report"; _printPrepared=false; window.print(); }
+/* 보고서 출력 (A3 세로: 대시보드+노선도) — 지도 타일 로딩 대기 후 인쇄 */
+function printReport(){ printMode="report"; doPreparePrint(); _printPrepared=true; setTimeout(()=>window.print(), 600); }
 /* 노선도만 가로로 크게 출력 (A3 가로) */
 function printRouteOnly(){
   printMode="route";
