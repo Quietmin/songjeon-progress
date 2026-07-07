@@ -84,18 +84,18 @@
     /* 노선도(지도+범례), 한 페이지에 맞게 */
     #map-leaflet{height:82mm!important;width:100%!important}
     #route-legend{margin:3px 0 4px!important}
-    .chain-tick{font-size:9px;padding:1px 2px}
-    .mh-tick{font-size:9px;padding:1px 3px}
+    /* 보고서(작은 지도)에선 체인NO·맨홀 글씨 숨김 — 너무 작아 안 보임 */
+    .chain-tick,.mh-tick{display:none!important}
     .leaflet-control-zoom,.leaflet-control-attribution{display:none!important}
-    /* 노선도만 가로 인쇄 */
+    /* 노선도만 가로 인쇄 — 체인NO·맨홀 다시 표시 */
+    body.print-route-only .chain-tick{display:block!important;font-size:11px;padding:2px 4px}
+    body.print-route-only .mh-tick{display:block!important;font-size:11px;padding:2px 5px}
     body.print-route-only #view-dashboard{display:none!important}
     body.print-route-only #view-route{display:block!important;margin:0!important}
     body.print-route-only #view-route .rounded-2xl{border:none!important;padding:0!important;box-shadow:none!important}
     body.print-route-only #view-route h2{font-size:20px!important;margin:0 0 3mm!important;text-align:center}
     body.print-route-only #route-legend{margin:2mm 0 3mm!important;justify-content:flex-end;font-size:12px}
     body.print-route-only #map-leaflet{height:250mm!important}
-    body.print-route-only .chain-tick{font-size:11px;padding:2px 4px}
-    body.print-route-only .mh-tick{font-size:11px;padding:2px 5px}
   }
 </style>
 </head>
@@ -302,6 +302,16 @@
         <button id="btn-print-route" onclick="printRouteOnly()" class="bg-primary text-white px-3 py-1.5 rounded-lg text-[13px] hover:bg-primary-container flex items-center gap-1"><span class="material-symbols-outlined text-sm">print</span> 노선도 가로 인쇄</button>
         <span id="route-status" class="text-[12px] text-on-surface-variant ml-2"></span>
       </div>
+      <div class="flex flex-wrap items-center gap-4 mb-2 no-print text-[12px] text-on-surface">
+        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="chk-chain" checked class="accent-primary"> 체인 NO. 표시</label>
+        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="chk-manhole" checked class="accent-primary"> 맨홀 표시</label>
+        <span class="flex items-center gap-1">체인 간격
+          <select id="sel-chainstep" class="border border-border-subtle rounded p-1 text-xs">
+            <option value="10">10단위 (200m)</option>
+            <option value="5">5단위 (100m)</option>
+            <option value="1">1단위 (20m)</option>
+          </select></span>
+      </div>
       <div id="route-legend" class="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-on-surface-variant mb-2"></div>
       <div id="map-leaflet" class="w-full rounded-xl overflow-hidden border border-border-subtle z-0" style="height:560px"></div>
     </div>
@@ -335,5 +345,5 @@
   </section>
 
 </main>
-<script src="app.js?v=17"></script>
+<script src="app.js?v=19"></script>
 </body></html>

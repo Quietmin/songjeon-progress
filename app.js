@@ -63,6 +63,7 @@ let STATE = loadState();
 let scaleMode = "ratio";  // ratio | real
 let routeColorMode = "stage";
 let calibrating = false;
+let showChain = true, showManhole = true, chainStep = 10;  // 노선도 라벨 표시/간격
 const ROLE = sessionStorage.getItem("songjeon_role") || "viewer";  // admin | viewer
 applyConfig();
 
@@ -200,20 +201,15 @@ function sectionComposite(sec){
   let sum=0; for(let s=0;s<7;s++) sum += stageDoneInSection(s,sec);
   return sec.openLen>0 ? (sum/7)/sec.openLen*100 : 0;
 }
+/* 진행률 = 본포장(완료) 기준 */
 function regionComposite(region){
   const secs = SECTIONS.filter(s=>s.region===region);
-  let sum=0, len=0;
-  for(const sec of secs){ for(let s=0;s<7;s++) sum += stageDoneInSection(s,sec); len += sec.openLen; }
-  let done = sum/7;
-  let total = len;
+  let done=0, total=0;
+  for(const sec of secs){ done += stageDoneInSection(6,sec); total += sec.openLen; }
   if(region==="용인"){ done += jackingDoneTotal(); total += JACKING_TOTAL; }
   return total>0 ? done/total*100 : 0;
 }
-function overallComposite(){
-  let sum=0; for(let s=0;s<7;s++) sum += stageDone(s);
-  const openComposite = (sum/7);
-  return (openComposite + jackingDoneTotal()) / (OPENCUT_TOTAL + JACKING_TOTAL) * 100;
-}
+function overallComposite(){ return bonpojangPct(); }
 function bonpojangPct(){ return (stageDone(6) + jackingDoneTotal()) / TOTAL * 100; }
 
 const fmt = n => Math.round(n).toLocaleString();
@@ -232,7 +228,7 @@ function renderDashboard(){
 
   // KPI
   const kpis = [
-    { lbl:"종합 진행률", val:pct1(overallComposite())+"%", sub:"가중(균등) · 전체 기준", accent:C_NAVY },
+    { lbl:"종합 진행률", val:pct1(overallComposite())+"%", sub:"본포장(완료) 기준", accent:C_NAVY },
     { lbl:"본포장 완료", val:pct1(bonpojangPct())+"%", sub:`${fmt(stageDone(6)+jackingDoneTotal())}m / ${fmt(TOTAL)}m`, accent:C_GREEN },
     { lbl:"수원 (1~4구간)", val:pct1(regionComposite("수원"))+"%", sub:"2,320m", accent:C_NAVY },
     { lbl:"용인 (5~7구간)", val:pct1(regionComposite("용인"))+"%", sub:`1,128m · 압입 ${pct1(jackingDoneTotal()/JACKING_TOTAL*100)}%`, accent:C_GREEN },
@@ -614,21 +610,24 @@ function drawRoute(){
       SECTIONS.forEach(sec=> poly(sec.start,sec.end,REGION_COLORS[sec.region],0.85));
     }
     // 체인 NO. 눈금 (10단위 = 200m 간격: NO.0, NO.10, NO.20 …)
-    for(let m=0; m<=TOTAL; m+=200){
-      const ll=latlngAtM(m); if(!ll) continue;
-      L.circleMarker(ll,{radius:3,color:C_NAVY,weight:1,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer)
-        .bindTooltip("NO."+Math.round(m/CHAIN),{permanent:true,direction:"top",offset:[0,-9],className:"chain-tick"});
+    // 체인 NO. — 왼쪽 위로 띄움, 간격(chainStep) 선택
+    if(showChain){
+      const maxNo=Math.round(TOTAL/CHAIN);
+      for(let no=0; no<=maxNo; no+=chainStep){
+        const ll=latlngAtM(no*CHAIN); if(!ll) continue;
+        L.circleMarker(ll,{radius:3,color:C_NAVY,weight:1,fillColor:"#fff",fillOpacity:1}).addTo(routeLayer)
+          .bindTooltip("NO."+no,{permanent:true,direction:"left",offset:[-8,-10],className:"chain-tick"});
+      }
+      const bEnd=latlngAtM(TOTAL);
+      if(bEnd) L.circleMarker(bEnd,{radius:4,color:C_NAVY,weight:2,fillColor:C_NAVY,fillOpacity:1}).addTo(routeLayer)
+        .bindTooltip("종점 NO."+maxNo,{permanent:true,direction:"left",offset:[-8,-10],className:"chain-tick"});
     }
-    // 종점
-    const bEnd=latlngAtM(TOTAL);
-    if(bEnd) L.circleMarker(bEnd,{radius:4,color:C_NAVY,weight:2,fillColor:C_NAVY,fillOpacity:1}).addTo(routeLayer)
-      .bindTooltip("종점 NO."+Math.round(TOTAL/CHAIN),{permanent:true,direction:"top",offset:[0,-9],className:"chain-tick"});
-    // 맨홀 (활락=빨강, 접속=주황) — 라벨을 선 아래로 띄움
-    MANHOLES.forEach(mh=>{
+    // 맨홀(활락=빨강, 접속=주황) — 오른쪽 아래로 띄움
+    if(showManhole) MANHOLES.forEach(mh=>{
       const ll=latlngAtM(mh.pos); if(!ll) return;
       const col = mh.type==="활락" ? "#ba1a1a" : "#FD7E14";
       L.circleMarker(ll,{radius:6,color:"#fff",weight:2,fillColor:col,fillOpacity:1}).addTo(routeLayer)
-        .bindTooltip(mh.name,{permanent:true,direction:"bottom",offset:[0,12],className:"mh-tick "+(mh.type==="활락"?"mh-drop":"mh-conn")});
+        .bindTooltip(mh.name,{permanent:true,direction:"right",offset:[8,12],className:"mh-tick "+(mh.type==="활락"?"mh-drop":"mh-conn")});
     });
   }
   // 보정 클릭 점은 보정 중에만 표시(완료 후엔 깔끔하게 시점/종점만)
@@ -691,6 +690,9 @@ function init(){
   document.getElementById("btn-undo-point").addEventListener("click", ()=>{ STATE.route.points.pop(); saveState(); drawRoute(); });
   document.getElementById("btn-clear-points").addEventListener("click", ()=>{ if(STATE.route.points.length && !confirm("노선 점을 모두 지울까요?")) return; STATE.route.points=[]; saveState(); drawRoute(); });
   document.getElementById("btn-fit").addEventListener("click", ()=>{ if(MAP) fitRoute(); });
+  document.getElementById("chk-chain").addEventListener("change", e=>{ showChain=e.target.checked; drawRoute(); });
+  document.getElementById("chk-manhole").addEventListener("change", e=>{ showManhole=e.target.checked; drawRoute(); });
+  document.getElementById("sel-chainstep").addEventListener("change", e=>{ chainStep=Number(e.target.value)||10; drawRoute(); });
   window.addEventListener("beforeprint", preparePrintMap);
   window.addEventListener("afterprint", restoreAfterPrint);
   window.addEventListener("resize", ()=>{ if(MAP && document.getElementById("view-route").classList.contains("active")) MAP.invalidateSize(); });
