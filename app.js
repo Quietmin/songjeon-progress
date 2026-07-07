@@ -201,15 +201,16 @@ function sectionComposite(sec){
   let sum=0; for(let s=0;s<7;s++) sum += stageDoneInSection(s,sec);
   return sec.openLen>0 ? (sum/7)/sec.openLen*100 : 0;
 }
-/* 진행률 = 본포장(완료) 기준 */
+/* 종합/지역 진행률 = 가포장(6번째 공정, index 5) 기준 */
+const COMPOSITE_STAGE = 5; // 가포장
 function regionComposite(region){
   const secs = SECTIONS.filter(s=>s.region===region);
   let done=0, total=0;
-  for(const sec of secs){ done += stageDoneInSection(6,sec); total += sec.openLen; }
+  for(const sec of secs){ done += stageDoneInSection(COMPOSITE_STAGE,sec); total += sec.openLen; }
   if(region==="용인"){ done += jackingDoneTotal(); total += JACKING_TOTAL; }
   return total>0 ? done/total*100 : 0;
 }
-function overallComposite(){ return bonpojangPct(); }
+function overallComposite(){ return (stageDone(COMPOSITE_STAGE) + jackingDoneTotal()) / TOTAL * 100; }
 function bonpojangPct(){ return (stageDone(6) + jackingDoneTotal()) / TOTAL * 100; }
 
 const fmt = n => Math.round(n).toLocaleString();
@@ -228,7 +229,7 @@ function renderDashboard(){
 
   // KPI
   const kpis = [
-    { lbl:"종합 진행률", val:pct1(overallComposite())+"%", sub:"본포장(완료) 기준", accent:C_NAVY },
+    { lbl:"종합 진행률", val:pct1(overallComposite())+"%", sub:"가포장 기준", accent:C_NAVY },
     { lbl:"본포장 완료", val:pct1(bonpojangPct())+"%", sub:`${fmt(stageDone(6)+jackingDoneTotal())}m / ${fmt(TOTAL)}m`, accent:C_GREEN },
     { lbl:"수원 (1~4구간)", val:pct1(regionComposite("수원"))+"%", sub:"2,320m", accent:C_NAVY },
     { lbl:"용인 (5~7구간)", val:pct1(regionComposite("용인"))+"%", sub:`1,128m · 압입 ${pct1(jackingDoneTotal()/JACKING_TOTAL*100)}%`, accent:C_GREEN },
