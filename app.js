@@ -229,7 +229,7 @@ function renderDashboard(){
 
   // KPI
   const kpis = [
-    { lbl:"종합 진행률", val:pct1(overallComposite())+"%", sub:"가포장 기준", accent:C_NAVY },
+    { lbl:"종합 진행률", val:pct1(overallComposite())+"%", sub:`${fmt(stageDone(COMPOSITE_STAGE)+jackingDoneTotal())}m / ${fmt(TOTAL)}m · 가포장 기준`, accent:C_NAVY },
     { lbl:"본포장 완료", val:pct1(bonpojangPct())+"%", sub:`${fmt(stageDone(6)+jackingDoneTotal())}m / ${fmt(TOTAL)}m`, accent:C_GREEN },
     { lbl:"수원 (1~4구간)", val:pct1(regionComposite("수원"))+"%", sub:"2,320m", accent:C_NAVY },
     { lbl:"용인 (5~7구간)", val:pct1(regionComposite("용인"))+"%", sub:`1,128m · 압입 ${pct1(jackingDoneTotal()/JACKING_TOTAL*100)}%`, accent:C_GREEN },
